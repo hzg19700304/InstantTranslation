@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Check, ChevronDown, Language as LanguageIcon } from "lucide-react";
+import { Check, ChevronDown, Languages } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +38,7 @@ const LanguageSelector = ({
             className="w-full justify-between border-translator-primary/20 hover:bg-translator-secondary"
           >
             <div className="flex items-center">
-              <LanguageIcon size={16} className="mr-2 text-translator-primary" />
+              <Languages size={16} className="mr-2 text-translator-primary" />
               <span>{selectedLanguage.name}</span>
             </div>
             <ChevronDown size={16} />
