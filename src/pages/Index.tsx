@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Cog, Repeat, Volume2, MicIcon, ArrowDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -275,46 +276,6 @@ const Index = () => {
           />
         </div>
 
-        {/* 设置按钮和LLM模型选择 */}
-        <div className="flex justify-end mb-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className={`rounded-full p-2 ${useLLM ? "bg-translator-primary text-white hover:bg-translator-primary/90" : "hover:bg-translator-secondary"}`}
-              >
-                <Cog size={18} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={toggleLLMTranslation}>
-                <Sparkles size={16} className="mr-2" /> 
-                大模型翻译 {useLLM ? "开" : "关"}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => selectLLM("huggingface")}
-                className={currentLLM === "huggingface" ? "bg-translator-secondary/40" : ""}
-              >
-                HuggingFace
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => selectLLM("deepseek")}
-                className={currentLLM === "deepseek" ? "bg-translator-secondary/40" : ""}
-              >
-                DeepSeek Chat
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => selectLLM("gemini")}
-                className={currentLLM === "gemini" ? "bg-translator-secondary/40" : ""}
-              >
-                Google Gemini
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
         {/* 当前使用的大模型提示 */}
         {useLLM && (
           <div className="text-right text-xs text-translator-primary mb-2">
@@ -383,8 +344,48 @@ const Index = () => {
           </Button>
         </div>
 
+        {/* 设置按钮和LLM模型选择 - 移动到底部 */}
+        <div className="flex justify-center mt-8">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className={`rounded-full p-2 ${useLLM ? "bg-translator-primary text-white hover:bg-translator-primary/90" : "hover:bg-translator-secondary"}`}
+              >
+                <Cog size={18} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center">
+              <DropdownMenuItem onClick={toggleLLMTranslation}>
+                <Sparkles size={16} className="mr-2" /> 
+                大模型翻译 {useLLM ? "开" : "关"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => selectLLM("huggingface")}
+                className={currentLLM === "huggingface" ? "bg-translator-secondary/40" : ""}
+              >
+                HuggingFace
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => selectLLM("deepseek")}
+                className={currentLLM === "deepseek" ? "bg-translator-secondary/40" : ""}
+              >
+                DeepSeek Chat
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => selectLLM("gemini")}
+                className={currentLLM === "gemini" ? "bg-translator-secondary/40" : ""}
+              >
+                Google Gemini
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         {/* 版权信息 */}
-        <div className="text-center mt-12">
+        <div className="text-center mt-6">
           <p className="text-xs text-muted-foreground">
             © 2025 即时翻译 App | 版本 1.0.0
           </p>
