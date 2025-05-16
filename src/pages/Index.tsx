@@ -1,13 +1,14 @@
 
-import React, { useState, useEffect } from "react";
-import { Repeat, Volume2, MicIcon, ArrowDown } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Repeat, Volume2, MicIcon, ArrowDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
 import TranslationCard from "@/components/TranslationCard";
 import LanguageSelector from "@/components/LanguageSelector";
 import { LANGUAGES } from "@/constants/languages";
 import { Language } from "@/types/translation";
-import { translateText } from "@/services/translationService";
+import { translateText, translateWithLLM } from "@/services/translationService";
 
 const Index = () => {
   const { toast } = useToast();
@@ -16,6 +17,9 @@ const Index = () => {
   const [sourceLanguage, setSourceLanguage] = useState<Language>(LANGUAGES[1]); // 英语
   const [targetLanguage, setTargetLanguage] = useState<Language>(LANGUAGES[0]); // 中文
   const [isTranslating, setIsTranslating] = useState(false);
+  const [useLLM, setUseLLM] = useState(false);
+  const [llmApiKey, setLlmApiKey] = useState("");
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
 
   // 语言切换功能
   const handleSwapLanguages = () => {
@@ -29,33 +33,83 @@ const Index = () => {
   };
 
   // 进行翻译
-  useEffect(() => {
-    const translateTimeout = setTimeout(async () => {
-      if (sourceText) {
-        setIsTranslating(true);
-        try {
-          const result = await translateText(
-            sourceText,
-            sourceLanguage.code,
-            targetLanguage.code
-          );
-          setTranslatedText(result);
-        } catch (error) {
-          toast({
-            title: "翻译失败",
-            description: "无法完成翻译，请稍后再试",
-            variant: "destructive",
-          });
-        } finally {
-          setIsTranslating(false);
-        }
+  const performTranslation = useCallback(async () => {
+    if (!sourceText) {
+      setTranslatedText("");
+      return;
+    }
+    
+    setIsTranslating(true);
+    try {
+      let result;
+      if (useLLM && llmApiKey) {
+        // 使用大模型翻译
+        result = await translateWithLLM(
+          sourceText,
+          sourceLanguage.code,
+          targetLanguage.code,
+          llmApiKey
+        );
       } else {
-        setTranslatedText("");
+        // 使用普通翻译API
+        result = await translateText(
+          sourceText,
+          sourceLanguage.code,
+          targetLanguage.code
+        );
       }
-    }, 500);
+      setTranslatedText(result);
+    } catch (error) {
+      toast({
+        title: "翻译失败",
+        description: "无法完成翻译，请稍后再试",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTranslating(false);
+    }
+  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, toast]);
 
+  // 监听文本变化，自动翻译
+  useEffect(() => {
+    const translateTimeout = setTimeout(performTranslation, 500);
     return () => clearTimeout(translateTimeout);
-  }, [sourceText, sourceLanguage, targetLanguage, toast]);
+  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, performTranslation]);
+
+  // 切换使用大模型翻译
+  const toggleLLMTranslation = () => {
+    if (!useLLM && !llmApiKey) {
+      setShowApiKeyInput(true);
+    }
+    setUseLLM(!useLLM);
+  };
+  
+  // 保存API密钥并关闭输入框
+  const saveApiKey = () => {
+    if (llmApiKey) {
+      localStorage.setItem('llm_api_key', llmApiKey);
+      setShowApiKeyInput(false);
+      toast({
+        title: "API密钥已保存",
+        description: "您的API密钥已保存在本地",
+      });
+      performTranslation();
+    } else {
+      toast({
+        title: "请输入API密钥",
+        description: "要使用大模型翻译，需要提供有效的HuggingFace API密钥",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // 加载保存的API密钥
+  useEffect(() => {
+    const savedKey = localStorage.getItem('llm_api_key');
+    if (savedKey) {
+      setLlmApiKey(savedKey);
+    }
+  }, []);
 
   // 模拟语音输入功能
   const handleVoiceInput = () => {
@@ -82,6 +136,53 @@ const Index = () => {
           <p className="text-sm text-muted-foreground mt-1">
             快速翻译任何语言的文本
           </p>
+        </div>
+
+        {/* API密钥输入框 */}
+        {showApiKeyInput && (
+          <div className="mb-4 p-4 bg-white rounded-lg border border-translator-primary/20 shadow-sm">
+            <div className="text-sm font-medium mb-2">HuggingFace API密钥</div>
+            <Input
+              type="password"
+              value={llmApiKey}
+              onChange={(e) => setLlmApiKey(e.target.value)}
+              placeholder="输入您的HuggingFace API密钥"
+              className="mb-2"
+            />
+            <div className="text-xs text-muted-foreground mb-2">
+              需要HuggingFace API密钥才能使用大模型翻译功能
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowApiKeyInput(false)}
+              >
+                取消
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={saveApiKey}
+                className="bg-translator-primary hover:bg-translator-primary/80"
+              >
+                保存
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* 翻译模式切换 */}
+        <div className="flex justify-end mb-2">
+          <Button 
+            variant={useLLM ? "default" : "outline"} 
+            size="sm" 
+            onClick={toggleLLMTranslation}
+            className={useLLM ? "bg-translator-primary hover:bg-translator-primary/80" : ""}
+          >
+            <Sparkles size={16} className="mr-1.5" /> 
+            大模型翻译 {useLLM ? "开" : "关"}
+          </Button>
         </div>
 
         {/* 语言选择器 */}
