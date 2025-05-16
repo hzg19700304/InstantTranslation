@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Repeat, Volume2, MicIcon, ArrowDown, Sparkles } from "lucide-react";
+import { Cog, Repeat, Volume2, MicIcon, ArrowDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,13 @@ import LanguageSelector from "@/components/LanguageSelector";
 import { LANGUAGES } from "@/constants/languages";
 import { Language } from "@/types/translation";
 import { translateText, translateWithLLM } from "@/services/translationService";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 const Index = () => {
   const { toast } = useToast();
@@ -20,6 +27,7 @@ const Index = () => {
   const [useLLM, setUseLLM] = useState(false);
   const [llmApiKey, setLlmApiKey] = useState("");
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [currentLLM, setCurrentLLM] = useState<string>("huggingface"); // 默认使用HuggingFace
 
   // 语言切换功能
   const handleSwapLanguages = () => {
@@ -48,7 +56,8 @@ const Index = () => {
           sourceText,
           sourceLanguage.code,
           targetLanguage.code,
-          llmApiKey
+          llmApiKey,
+          currentLLM
         );
       } else {
         // 使用普通翻译API
@@ -68,13 +77,13 @@ const Index = () => {
     } finally {
       setIsTranslating(false);
     }
-  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, toast]);
+  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, toast, currentLLM]);
 
   // 监听文本变化，自动翻译
   useEffect(() => {
     const translateTimeout = setTimeout(performTranslation, 500);
     return () => clearTimeout(translateTimeout);
-  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, performTranslation]);
+  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, performTranslation]);
 
   // 切换使用大模型翻译
   const toggleLLMTranslation = () => {
@@ -82,6 +91,40 @@ const Index = () => {
       setShowApiKeyInput(true);
     }
     setUseLLM(!useLLM);
+  };
+  
+  // 选择大模型
+  const selectLLM = (model: string) => {
+    setCurrentLLM(model);
+    
+    // 如果用户当前不在使用LLM模式，自动切换到LLM模式
+    if (!useLLM) {
+      setUseLLM(true);
+      
+      // 如果没有API密钥，显示输入框
+      if (!llmApiKey) {
+        setShowApiKeyInput(true);
+      }
+    }
+    
+    toast({
+      title: "已选择模型",
+      description: `当前使用${getLLMDisplayName(model)}进行翻译`,
+    });
+  };
+  
+  // 获取LLM显示名称
+  const getLLMDisplayName = (model: string): string => {
+    switch (model) {
+      case "huggingface":
+        return "HuggingFace";
+      case "deepseek":
+        return "DeepSeek Chat";
+      case "gemini":
+        return "Google Gemini";
+      default:
+        return "未知模型";
+    }
   };
   
   // 保存API密钥并关闭输入框
@@ -97,7 +140,7 @@ const Index = () => {
     } else {
       toast({
         title: "请输入API密钥",
-        description: "要使用大模型翻译，需要提供有效的HuggingFace API密钥",
+        description: "要使用大模型翻译，需要提供有效的API密钥",
         variant: "destructive",
       });
     }
@@ -141,16 +184,16 @@ const Index = () => {
         {/* API密钥输入框 */}
         {showApiKeyInput && (
           <div className="mb-4 p-4 bg-white rounded-lg border border-translator-primary/20 shadow-sm">
-            <div className="text-sm font-medium mb-2">HuggingFace API密钥</div>
+            <div className="text-sm font-medium mb-2">API密钥 - {getLLMDisplayName(currentLLM)}</div>
             <Input
               type="password"
               value={llmApiKey}
               onChange={(e) => setLlmApiKey(e.target.value)}
-              placeholder="输入您的HuggingFace API密钥"
+              placeholder={`输入您的${getLLMDisplayName(currentLLM)}API密钥`}
               className="mb-2"
             />
             <div className="text-xs text-muted-foreground mb-2">
-              需要HuggingFace API密钥才能使用大模型翻译功能
+              需要API密钥才能使用{getLLMDisplayName(currentLLM)}翻译功能
             </div>
             <div className="flex justify-end gap-2">
               <Button 
@@ -172,20 +215,7 @@ const Index = () => {
           </div>
         )}
 
-        {/* 翻译模式切换 */}
-        <div className="flex justify-end mb-2">
-          <Button 
-            variant={useLLM ? "default" : "outline"} 
-            size="sm" 
-            onClick={toggleLLMTranslation}
-            className={useLLM ? "bg-translator-primary hover:bg-translator-primary/80" : ""}
-          >
-            <Sparkles size={16} className="mr-1.5" /> 
-            大模型翻译 {useLLM ? "开" : "关"}
-          </Button>
-        </div>
-
-        {/* 语言选择器 */}
+        {/* 语言选择器和大模型设置按钮 */}
         <div className="flex items-center justify-between gap-2 mb-6">
           <LanguageSelector
             languages={LANGUAGES}
@@ -214,6 +244,56 @@ const Index = () => {
             className="flex-1"
           />
         </div>
+
+        {/* 设置按钮和LLM模型选择 */}
+        <div className="flex justify-end mb-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className={`rounded-full p-2 ${useLLM ? "bg-translator-primary text-white hover:bg-translator-primary/90" : "hover:bg-translator-secondary"}`}
+              >
+                <Cog size={18} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={toggleLLMTranslation}>
+                <Sparkles size={16} className="mr-2" /> 
+                大模型翻译 {useLLM ? "开" : "关"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => selectLLM("huggingface")}
+                className={currentLLM === "huggingface" ? "bg-translator-secondary/40" : ""}
+              >
+                HuggingFace
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => selectLLM("deepseek")}
+                className={currentLLM === "deepseek" ? "bg-translator-secondary/40" : ""}
+              >
+                DeepSeek Chat
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => selectLLM("gemini")}
+                className={currentLLM === "gemini" ? "bg-translator-secondary/40" : ""}
+              >
+                Google Gemini
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* 当前使用的大模型提示 */}
+        {useLLM && (
+          <div className="text-right text-xs text-translator-primary mb-2">
+            <span className="inline-flex items-center">
+              <Sparkles size={12} className="mr-1" />
+              {getLLMDisplayName(currentLLM)}
+            </span>
+          </div>
+        )}
 
         {/* 翻译卡片区域 */}
         <div className="space-y-4">
