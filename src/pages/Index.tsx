@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Cog, Repeat, Volume2, MicIcon, ArrowDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +27,8 @@ const Index = () => {
   const [llmApiKey, setLlmApiKey] = useState("");
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [currentLLM, setCurrentLLM] = useState<string>("huggingface"); // 默认使用HuggingFace
+  const [retryCount, setRetryCount] = useState(0);
+  const [translationError, setTranslationError] = useState("");
 
   // 语言切换功能
   const handleSwapLanguages = () => {
@@ -44,10 +45,13 @@ const Index = () => {
   const performTranslation = useCallback(async () => {
     if (!sourceText) {
       setTranslatedText("");
+      setTranslationError("");
       return;
     }
     
     setIsTranslating(true);
+    setTranslationError("");
+    
     try {
       let result;
       if (useLLM && llmApiKey) {
@@ -67,11 +71,26 @@ const Index = () => {
           targetLanguage.code
         );
       }
+      
+      // 检查返回结果是否包含错误信息
+      if (result.includes("[翻译失败:")) {
+        setTranslationError("翻译服务暂时不可用，请稍后再试");
+        // 显示错误提示
+        toast({
+          title: "翻译服务暂时不可用",
+          description: "我们正在尝试连接到备用服务器",
+          variant: "destructive",
+        });
+      } else {
+        setTranslationError("");
+      }
+      
       setTranslatedText(result);
     } catch (error) {
+      setTranslationError("翻译服务连接失败");
       toast({
         title: "翻译失败",
-        description: "无法完成翻译，请稍后再试",
+        description: "无法完成翻译，请稍后再试或切换翻译模式",
         variant: "destructive",
       });
     } finally {
@@ -81,9 +100,20 @@ const Index = () => {
 
   // 监听文本变化，自动翻译
   useEffect(() => {
-    const translateTimeout = setTimeout(performTranslation, 500);
+    const translateTimeout = setTimeout(() => {
+      performTranslation();
+    }, 500);
     return () => clearTimeout(translateTimeout);
-  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, performTranslation]);
+  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, performTranslation, retryCount]);
+
+  // 手动重试翻译功能
+  const handleRetryTranslation = () => {
+    setRetryCount(prev => prev + 1);
+    toast({
+      title: "正在重试翻译",
+      description: "尝试连接到备用翻译服务器...",
+    });
+  };
 
   // 切换使用大模型翻译
   const toggleLLMTranslation = () => {
@@ -315,6 +345,21 @@ const Index = () => {
             value={isTranslating ? "翻译中..." : translatedText}
             className={isTranslating ? "opacity-70" : ""}
           />
+          
+          {/* 翻译错误提示和重试按钮 */}
+          {translationError && (
+            <div className="mt-2 text-center">
+              <p className="text-sm text-red-500 mb-2">{translationError}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRetryTranslation}
+                className="border-translator-primary/20 hover:bg-translator-secondary"
+              >
+                <Repeat size={14} className="mr-1.5"/> 重试翻译
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* 功能按钮 */}

@@ -1,20 +1,26 @@
 
 // 翻译服务
-// 使用 LibreTranslate API - 开源免费翻译服务
+// 使用多个免费翻译API以提高可靠性
 
 interface LibreTranslateResponse {
   translatedText: string;
   error?: string;
 }
 
-// LibreTranslate API URL (使用公共实例)
-const LIBRE_TRANSLATE_API = "https://translate.argosopentech.com/translate";
+// 几个可用的免费翻译API端点
+const TRANSLATION_API_ENDPOINTS = [
+  "https://translate.argosopentech.com/translate",
+  "https://libretranslate.de/translate",
+  "https://translate.terraprint.co/translate",  // 新增备用API
+  "https://translate.astian.org/translate",     // 新增备用API
+  "https://translate.mentality.rip/translate"   // 新增备用API
+];
 
-// 备用API (以防主要API不可用)
-const BACKUP_LIBRE_TRANSLATE_API = "https://libretranslate.de/translate";
+// 默认超时时间
+const API_TIMEOUT_MS = 5000;
 
 /**
- * 通过 LibreTranslate API 翻译文本
+ * 通过多个免费API翻译文本，提高可靠性
  */
 export const translateText = async (
   text: string, 
@@ -26,70 +32,112 @@ export const translateText = async (
   // 如果源语言和目标语言相同，直接返回原文
   if (sourceLanguage === targetLanguage) return text;
   
-  try {
-    // 准备API请求数据
-    const requestBody = {
-      q: text,
-      source: sourceLanguage,
-      target: targetLanguage,
-      format: "text"
-    };
-    
-    // 调用API
-    const response = await fetch(LIBRE_TRANSLATE_API, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    });
-    
-    if (!response.ok) {
-      // 如果主要API失败，尝试备用API
-      console.log("主要API调用失败，尝试备用API...");
-      const backupResponse = await fetch(BACKUP_LIBRE_TRANSLATE_API, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
-      });
+  // 准备API请求数据
+  const requestBody = {
+    q: text,
+    source: sourceLanguage,
+    target: targetLanguage,
+    format: "text"
+  };
+  
+  // 超时处理函数
+  const timeoutPromise = new Promise<Response>((_, reject) => {
+    setTimeout(() => reject(new Error("请求超时")), API_TIMEOUT_MS);
+  });
+
+  // 构建请求选项
+  const requestOptions = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestBody)
+  };
+
+  // 用于存储错误信息
+  let lastError = "";
+  
+  // 依次尝试每个API端点
+  for (const apiUrl of TRANSLATION_API_ENDPOINTS) {
+    try {
+      console.log(`尝试使用API: ${apiUrl}`);
       
-      if (!backupResponse.ok) {
-        throw new Error(`翻译API调用失败: ${backupResponse.status}`);
+      // 发起带超时的请求
+      const response = await Promise.race([
+        fetch(apiUrl, requestOptions),
+        timeoutPromise
+      ]);
+      
+      if (!response.ok) {
+        throw new Error(`API状态码: ${response.status}`);
       }
       
-      const backupResult: LibreTranslateResponse = await backupResponse.json();
-      if (backupResult.error) {
-        throw new Error(backupResult.error);
+      const result: LibreTranslateResponse = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
       }
       
-      return backupResult.translatedText;
+      console.log(`成功从${apiUrl}获取翻译`);
+      return result.translatedText;
+    } catch (error) {
+      lastError = (error as Error).message;
+      console.warn(`API ${apiUrl} 失败: ${lastError}`);
+      // 继续尝试下一个API
     }
-    
-    // 解析API结果
-    const result: LibreTranslateResponse = await response.json();
-    if (result.error) {
-      throw new Error(result.error);
-    }
-    
-    return result.translatedText;
-  } catch (error) {
-    console.error("翻译过程中发生错误:", error);
-    
-    // 发生错误时，提供简单的回退翻译功能
-    if (sourceLanguage === "en" && targetLanguage === "zh") {
-      if (text.toLowerCase().includes("hello")) return "你好";
-      if (text.toLowerCase().includes("thank")) return "谢谢";
-    }
-    if (sourceLanguage === "zh" && targetLanguage === "en") {
-      if (text.includes("你好")) return "Hello";
-      if (text.includes("谢谢")) return "Thank you";
-    }
-    
-    // 如果所有尝试都失败，返回错误信息
-    return `[翻译失败: ${(error as Error).message}]`;
   }
+  
+  console.error("所有翻译API都失败了:", lastError);
+  
+  // 所有API都失败时，提供简单的回退翻译功能
+  return getFallbackTranslation(text, sourceLanguage, targetLanguage) || 
+         `[翻译失败: 无法连接到翻译服务]`;
+};
+
+/**
+ * 提供基本的回退翻译功能
+ */
+const getFallbackTranslation = (
+  text: string,
+  sourceLanguage: string,
+  targetLanguage: string
+): string | null => {
+  // 扩展基础词典
+  const dictionary: Record<string, Record<string, string>> = {
+    "en": {
+      "hello": { "zh": "你好" },
+      "thank": { "zh": "谢谢" },
+      "world": { "zh": "世界" },
+      "translate": { "zh": "翻译" },
+      "language": { "zh": "语言" },
+      "error": { "zh": "错误" },
+      "failed": { "zh": "失败" },
+      "try": { "zh": "尝试" },
+      "again": { "zh": "再次" }
+    },
+    "zh": {
+      "你好": { "en": "hello" },
+      "谢谢": { "en": "thank you" },
+      "世界": { "en": "world" },
+      "翻译": { "en": "translate" },
+      "语言": { "en": "language" },
+      "错误": { "en": "error" },
+      "失败": { "en": "failed" },
+      "尝试": { "en": "try" },
+      "再次": { "en": "again" }
+    }
+  };
+  
+  // 检查字典中是否有匹配的词
+  if (dictionary[sourceLanguage]) {
+    for (const [key, translations] of Object.entries(dictionary[sourceLanguage])) {
+      if (text.toLowerCase().includes(key.toLowerCase()) && translations[targetLanguage]) {
+        return `[离线翻译] ${translations[targetLanguage]}`;
+      }
+    }
+  }
+  
+  return null;
 };
 
 /**
