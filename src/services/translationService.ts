@@ -102,8 +102,8 @@ const getFallbackTranslation = (
   sourceLanguage: string,
   targetLanguage: string
 ): string | null => {
-  // 扩展基础词典
-  const dictionary: Record<string, Record<string, string>> = {
+  // 修正的字典结构，确保类型正确
+  const dictionary: Record<string, Record<string, Record<string, string>>> = {
     "en": {
       "hello": { "zh": "你好" },
       "thank": { "zh": "谢谢" },
@@ -131,7 +131,8 @@ const getFallbackTranslation = (
   // 检查字典中是否有匹配的词
   if (dictionary[sourceLanguage]) {
     for (const [key, translations] of Object.entries(dictionary[sourceLanguage])) {
-      if (text.toLowerCase().includes(key.toLowerCase()) && translations[targetLanguage]) {
+      if (text.toLowerCase().includes(key.toLowerCase()) && 
+          translations[targetLanguage]) {
         return `[离线翻译] ${translations[targetLanguage]}`;
       }
     }
