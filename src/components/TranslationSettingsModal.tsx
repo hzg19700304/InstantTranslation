@@ -1,22 +1,38 @@
-
 import React, { useState, useEffect } from "react";
-import { X } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Check, Loader2 } from "lucide-react";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+
+import { testLLMConnection, getLLMDisplayName } from "@/services/translation";
 
 interface TranslationSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   useLLM: boolean;
-  setUseLLM: (value: boolean) => void;
+  setUseLLM: (useLLM: boolean) => void;
   currentLLM: string;
-  setCurrentLLM: (value: string) => void;
+  setCurrentLLM: (currentLLM: string) => void;
   llmApiKey: string;
-  setLlmApiKey: (value: string) => void;
+  setLlmApiKey: (llmApiKey: string) => void;
 }
 
 const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
@@ -29,376 +45,153 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
   llmApiKey,
   setLlmApiKey,
 }) => {
-  const [selectedProvider, setSelectedProvider] = useState(useLLM ? "llm" : "api");
-  const [temperature, setTemperature] = useState(0.7);
-  const [maxTokens, setMaxTokens] = useState(2048);
-  const [tempApiKey, setTempApiKey] = useState(llmApiKey);
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
-
-  // 处理API提供商更改
-  const handleProviderChange = (value: string) => {
-    setSelectedProvider(value);
-    
-    // 更新LLM模型类型
-    if (value === "llm") {
-      setCurrentLLM("deepseek");
-    } else if (value === "llm_gemini") {
-      setCurrentLLM("gemini");
-    } else if (value === "llm_huggingface") {
-      setCurrentLLM("huggingface");
-    }
-    
-    setUseLLM(value !== "api");
+  const [apiKeyInput, setApiKeyInput] = useState(llmApiKey);
+  const [isTesting, setIsTesting] = useState(false);
+  
+  // 保存API密钥到本地存储
+  const saveApiKey = () => {
+    localStorage.setItem('llm_api_key', apiKeyInput);
+    setLlmApiKey(apiKeyInput);
+    toast.success("API密钥已保存", {
+      description: "您的API密钥已保存在本地"
+    });
   };
-
-  // 处理LLM模型更改
-  const handleModelChange = (value: string) => {
-    setCurrentLLM(value);
-  };
-
-  // 保存配置
-  const handleSaveSettings = () => {
-    if (selectedProvider !== "api" && tempApiKey) {
-      localStorage.setItem('llm_api_key', tempApiKey);
-      setLlmApiKey(tempApiKey);
-      toast.success("已保存配置");
-    } else if (selectedProvider !== "api" && !tempApiKey) {
-      toast.error("未提供API密钥");
-      return;
-    } else {
-      toast.success("已切换到LibreTranslate API");
-    }
-    onClose();
-  };
-
-  // 测试连接
+  
+  // 测试连接按钮点击处理
   const handleTestConnection = async () => {
-    // 根据当前选中的提供商确定测试方式
-    if (selectedProvider === "api") {
-      // 测试公共API连接
-      testLibreTranslateConnection();
-    } else {
-      // 测试大模型连接，根据当前选择的LLM类型
-      if (!tempApiKey) {
-        toast.error("请先输入API密钥");
-        return;
-      }
-      
-      const modelType = getModelTypeFromProvider(selectedProvider);
-      testLLMConnection(modelType, tempApiKey);
-    }
-  };
-  
-  // 从提供商选择获取模型类型
-  const getModelTypeFromProvider = (provider: string): string => {
-    switch (provider) {
-      case "llm":
-        return "deepseek";
-      case "llm_gemini":
-        return "gemini";
-      case "llm_huggingface":
-        return "huggingface";
-      default:
-        return "deepseek"; // 默认
-    }
-  };
-
-  // 测试普通翻译API
-  const testLibreTranslateConnection = async () => {
-    setIsTestingConnection(true);
-    try {
-      const response = await fetch("https://translate.argosopentech.com/languages", {
-        method: "GET",
+    if (!llmApiKey) {
+      toast.error("请输入API密钥", {
+        description: "要测试连接，需要提供有效的API密钥"
       });
+      return;
+    }
+    
+    setIsTesting(true);
+    
+    try {
+      const isConnected = await testLLMConnection(llmApiKey, currentLLM as any);
       
-      if (response.ok) {
-        toast.success("连接成功！LibreTranslate API可用");
+      if (isConnected) {
+        toast.success("连接成功", {
+          description: `成功连接到${getLLMDisplayName(currentLLM)}API`
+        });
       } else {
-        toast.error("连接失败：无法访问LibreTranslate API");
+        toast.error("连接失败", {
+          description: `无法连接到${getLLMDisplayName(currentLLM)}API，请检查API密钥是否有效`
+        });
       }
     } catch (error) {
-      toast.error("连接错误：网络问题或API不可用");
+      toast.error("连接测试出错", {
+        description: `${(error as Error).message}`
+      });
     } finally {
-      setIsTestingConnection(false);
-    }
-  };
-  
-  // 测试LLM连接
-  const testLLMConnection = async (modelType: string, apiKey: string) => {
-    setIsTestingConnection(true);
-    try {
-      let success = false;
-      let message = "";
-      
-      switch (modelType) {
-        case "deepseek":
-          success = await testDeepSeekConnection(apiKey);
-          message = success ? "DeepSeek API连接成功！" : "DeepSeek API连接失败，请检查密钥";
-          break;
-        case "gemini":
-          success = await testGeminiConnection(apiKey);
-          message = success ? "Google Gemini API连接成功！" : "Google Gemini API连接失败，请检查密钥";
-          break;
-        case "huggingface":
-        default:
-          success = await testHuggingFaceConnection(apiKey);
-          message = success ? "HuggingFace API连接成功！" : "HuggingFace API连接失败，请检查密钥";
-          break;
-      }
-      
-      if (success) {
-        toast.success(message);
-      } else {
-        toast.error(message);
-      }
-    } catch (error) {
-      toast.error(`连接测试失败: ${(error as Error).message}`);
-    } finally {
-      setIsTestingConnection(false);
+      setIsTesting(false);
     }
   };
 
-  // 测试HuggingFace连接
-  const testHuggingFaceConnection = async (apiKey: string): Promise<boolean> => {
-    try {
-      const response = await fetch("https://api-inference.huggingface.co/models/facebook/mbart-large-50-many-to-many-mmt", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          inputs: "Hello",
-          parameters: {
-            src_lang: "en_XX",
-            tgt_lang: "zh_CN"
-          }
-        })
-      });
-      
-      const data = await response.json();
-      return !data.error;
-    } catch (error) {
-      console.error("HuggingFace连接错误:", error);
-      return false;
-    }
-  };
-
-  // 测试DeepSeek连接
-  const testDeepSeekConnection = async (apiKey: string): Promise<boolean> => {
-    try {
-      const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "deepseek-chat",
-          messages: [
-            {
-              role: "system",
-              content: "你是一个翻译助手。"
-            },
-            {
-              role: "user",
-              content: "测试连接"
-            }
-          ],
-          max_tokens: 10
-        })
-      });
-      
-      const data = await response.json();
-      return !!data.choices;
-    } catch (error) {
-      console.error("DeepSeek连接错误:", error);
-      return false;
-    }
-  };
-
-  // 测试Gemini连接
-  const testGeminiConnection = async (apiKey: string): Promise<boolean> => {
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: "测试连接"
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 10
-          }
-        })
-      });
-      
-      const data = await response.json();
-      return !!data.candidates;
-    } catch (error) {
-      console.error("Gemini连接错误:", error);
-      return false;
-    }
-  };
-
-  // 同步useLLM和currentLLM状态到界面选择
+  // 同步apiKeyInput和llmApiKey
   useEffect(() => {
-    if (useLLM) {
-      switch (currentLLM) {
-        case "deepseek":
-          setSelectedProvider("llm");
-          break;
-        case "gemini":
-          setSelectedProvider("llm_gemini");
-          break;
-        case "huggingface":
-          setSelectedProvider("llm_huggingface");
-          break;
-        default:
-          setSelectedProvider("llm");
-      }
-    } else {
-      setSelectedProvider("api");
-    }
-  }, [useLLM, currentLLM]);
-
-  // 同步API密钥
-  useEffect(() => {
-    setTempApiKey(llmApiKey);
+    setApiKeyInput(llmApiKey);
   }, [llmApiKey]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-xl text-translator-primary">模型配置</DialogTitle>
-          <button
-            onClick={onClose}
-            className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"
-          >
-            <X size={18} />
-          </button>
-        </DialogHeader>
-
-        <div className="space-y-6 py-4">
-          {/* 翻译API提供商选择 */}
-          <div className="space-y-2">
-            <label className="font-medium text-gray-700">翻译API提供商:</label>
-            <Select 
-              value={selectedProvider} 
-              onValueChange={handleProviderChange}
-            >
-              <SelectTrigger className="w-full border-translator-primary/20">
-                <SelectValue placeholder="选择提供商" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="api">LibreTranslate (免费)</SelectItem>
-                <SelectItem value="llm">DeepSeek API</SelectItem>
-                <SelectItem value="llm_gemini">Google Gemini</SelectItem>
-                <SelectItem value="llm_huggingface">HuggingFace</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {selectedProvider === "api" && (
-              <div className="mt-2 bg-blue-50 p-3 rounded-md text-sm text-blue-600">
-                使用公共LibreTranslate服务，可能有速率限制
-              </div>
-            )}
-          </div>
-
-          {/* 大模型特定配置 */}
-          {selectedProvider !== "api" && (
-            <div className="space-y-4">
-              {/* API密钥输入 */}
-              <div>
-                <label className="font-medium text-gray-700">API 密钥:</label>
-                <Input
-                  type="password"
-                  value={tempApiKey}
-                  onChange={(e) => setTempApiKey(e.target.value)}
-                  placeholder="在此输入您的API密钥"
-                  className="mt-1 border-translator-primary/20"
-                />
-              </div>
-
-              {/* 模型选择（仅针对某些提供商） */}
-              {selectedProvider === "llm" && (
-                <div>
-                  <label className="font-medium text-gray-700">选择模型:</label>
-                  <Select 
-                    value="deepseek-chat" 
-                    onValueChange={handleModelChange}
-                  >
-                    <SelectTrigger className="w-full border-translator-primary/20 mt-1">
-                      <SelectValue placeholder="选择模型" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="deepseek-chat">deepseek-chat</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* 温度滑块 */}
-              <div>
-                <div className="flex justify-between mb-1">
-                  <label className="font-medium text-gray-700">温度:</label>
-                  <span className="text-sm text-gray-500">{temperature}</span>
-                </div>
-                <Slider
-                  value={[temperature]}
-                  max={1}
-                  step={0.1}
-                  onValueChange={(values) => setTemperature(values[0])}
-                  className="my-2"
-                />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>更确定</span>
-                  <span>更有创意</span>
-                </div>
-              </div>
-
-              {/* 最大Token数 */}
-              <div>
-                <label className="font-medium text-gray-700">最大 Token 数:</label>
-                <Input
-                  type="number"
-                  value={maxTokens}
-                  onChange={(e) => setMaxTokens(Number(e.target.value))}
-                  className="mt-1 border-translator-primary/20"
-                />
-              </div>
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle>翻译设置</SheetTitle>
+          <SheetDescription>
+            配置翻译选项，包括选择翻译引擎和API密钥。
+          </SheetDescription>
+        </SheetHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="llm" className="text-right">
+              使用大模型翻译
+            </Label>
+            <div className="col-span-3 flex items-center space-x-2">
+              <Switch
+                id="llm"
+                checked={useLLM}
+                onCheckedChange={setUseLLM}
+              />
             </div>
+          </div>
+          
+          {useLLM && (
+            <>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="model" className="text-right">
+                  选择大模型
+                </Label>
+                <div className="col-span-3">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        {getLLMDisplayName(currentLLM)}
+                         <Check className="h-4 w-4 ml-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setCurrentLLM("huggingface")}>
+                        HuggingFace
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setCurrentLLM("deepseek")}>
+                        DeepSeek Chat
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setCurrentLLM("gemini")}>
+                        Google Gemini
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="api-key" className="text-right">
+                  API 密钥
+                </Label>
+                <Input
+                  id="api-key"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  className="col-span-3"
+                  type="password"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <div></div>
+                <div className="col-span-3 flex justify-end space-x-2">
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    onClick={saveApiKey}
+                  >
+                    保存密钥
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleTestConnection}
+                    disabled={isTesting}
+                  >
+                    {isTesting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        测试连接中...
+                      </>
+                    ) : (
+                      "测试连接"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </div>
-
-        <div className="flex gap-2 justify-between mt-4">
-          <Button
-            onClick={handleSaveSettings}
-            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
-          >
-            保存配置
-          </Button>
-          <Button
-            onClick={handleTestConnection}
-            disabled={isTestingConnection}
-            variant="outline"
-            className="flex-1 border-blue-300 text-blue-500 hover:bg-blue-50"
-          >
-            {isTestingConnection ? "测试中..." : "测试连接"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 };
 

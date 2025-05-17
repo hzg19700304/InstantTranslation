@@ -8,7 +8,7 @@ import LanguageSelector from "@/components/LanguageSelector";
 import TranslationSettingsModal from "@/components/TranslationSettingsModal";
 import { LANGUAGES } from "@/constants/languages";
 import { Language } from "@/types/translation";
-import { translateText, translateWithLLM } from "@/services/translationService";
+import { translateText, translateWithLLM, getLLMDisplayName } from "@/services/translation";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -144,18 +144,9 @@ const Index = () => {
     });
   };
   
-  // 获取LLM显示名称
+  // 获取LLM显示名称 - 使用导入的函数
   const getLLMDisplayName = (model: string): string => {
-    switch (model) {
-      case "huggingface":
-        return "HuggingFace";
-      case "deepseek":
-        return "DeepSeek Chat";
-      case "gemini":
-        return "Google Gemini";
-      default:
-        return "未知模型";
-    }
+    return getLLMDisplayName(model);
   };
   
   // 保存API密钥并关闭输入框
