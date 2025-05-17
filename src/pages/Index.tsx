@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import TranslationCard from "@/components/TranslationCard";
 import LanguageSelector from "@/components/LanguageSelector";
+import TranslationSettingsModal from "@/components/TranslationSettingsModal";
 import { LANGUAGES } from "@/constants/languages";
 import { Language } from "@/types/translation";
 import { translateText, translateWithLLM } from "@/services/translationService";
@@ -30,6 +31,7 @@ const Index = () => {
   const [currentLLM, setCurrentLLM] = useState<string>("huggingface"); // 默认使用HuggingFace
   const [retryCount, setRetryCount] = useState(0);
   const [translationError, setTranslationError] = useState("");
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   // 语言切换功能
   const handleSwapLanguages = () => {
@@ -114,6 +116,11 @@ const Index = () => {
       title: "正在重试翻译",
       description: "尝试连接到备用翻译服务器...",
     });
+  };
+
+  // 打开设置模态框
+  const openSettingsModal = () => {
+    setIsSettingsModalOpen(true);
   };
 
   // 切换使用大模型翻译
@@ -323,7 +330,7 @@ const Index = () => {
           )}
         </div>
 
-        {/* 功能按钮 */}
+        {/* 功能按钮 - 现在三个按钮在同一行 */}
         <div className="flex justify-center gap-3 mt-6">
           <Button
             variant="outline"
@@ -342,46 +349,15 @@ const Index = () => {
           >
             <Volume2 size={16} className="mr-1.5" /> 朗读文本
           </Button>
-        </div>
-
-        {/* 设置按钮和LLM模型选择 - 移动到底部 */}
-        <div className="flex justify-center mt-8">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className={`rounded-full p-2 ${useLLM ? "bg-translator-primary text-white hover:bg-translator-primary/90" : "hover:bg-translator-secondary"}`}
-              >
-                <Cog size={18} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="center">
-              <DropdownMenuItem onClick={toggleLLMTranslation}>
-                <Sparkles size={16} className="mr-2" /> 
-                大模型翻译 {useLLM ? "开" : "关"}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => selectLLM("huggingface")}
-                className={currentLLM === "huggingface" ? "bg-translator-secondary/40" : ""}
-              >
-                HuggingFace
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => selectLLM("deepseek")}
-                className={currentLLM === "deepseek" ? "bg-translator-secondary/40" : ""}
-              >
-                DeepSeek Chat
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => selectLLM("gemini")}
-                className={currentLLM === "gemini" ? "bg-translator-secondary/40" : ""}
-              >
-                Google Gemini
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openSettingsModal}
+            className="border-translator-primary/20 hover:bg-translator-secondary"
+          >
+            <Cog size={16} className="mr-1.5" /> 配置
+          </Button>
         </div>
 
         {/* 版权信息 */}
@@ -391,6 +367,18 @@ const Index = () => {
           </p>
         </div>
       </div>
+      
+      {/* 翻译设置模态框 */}
+      <TranslationSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        useLLM={useLLM}
+        setUseLLM={setUseLLM}
+        currentLLM={currentLLM}
+        setCurrentLLM={setCurrentLLM}
+        llmApiKey={llmApiKey}
+        setLlmApiKey={setLlmApiKey}
+      />
     </div>
   );
 };
