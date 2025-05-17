@@ -1,11 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 interface TranslationSettingsModalProps {
   isOpen: boolean;
@@ -32,11 +33,12 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(2048);
   const [tempApiKey, setTempApiKey] = useState(llmApiKey);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   // 处理API提供商更改
   const handleProviderChange = (value: string) => {
     setSelectedProvider(value);
-    setUseLLM(value === "llm");
+    setUseLLM(value !== "api");
   };
 
   // 处理LLM模型更改
@@ -46,18 +48,183 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
 
   // 保存配置
   const handleSaveSettings = () => {
-    if (selectedProvider === "llm" && tempApiKey) {
+    if (selectedProvider !== "api" && tempApiKey) {
       localStorage.setItem('llm_api_key', tempApiKey);
       setLlmApiKey(tempApiKey);
+      toast.success("已保存配置");
+    } else if (selectedProvider !== "api" && !tempApiKey) {
+      toast.error("未提供API密钥");
+      return;
+    } else {
+      toast.success("已切换到LibreTranslate API");
     }
     onClose();
   };
 
   // 测试连接
-  const handleTestConnection = () => {
-    // 这里可以实现测试连接的逻辑
-    alert("测试连接功能将在未来版本中提供");
+  const handleTestConnection = async () => {
+    if (selectedProvider === "api") {
+      // 测试公共API连接
+      setIsTestingConnection(true);
+      try {
+        const response = await fetch("https://translate.argosopentech.com/languages", {
+          method: "GET",
+        });
+        
+        if (response.ok) {
+          toast.success("连接成功！LibreTranslate API可用");
+        } else {
+          toast.error("连接失败：无法访问LibreTranslate API");
+        }
+      } catch (error) {
+        toast.error("连接错误：网络问题或API不可用");
+      } finally {
+        setIsTestingConnection(false);
+      }
+    } else {
+      // 测试大模型连接
+      if (!tempApiKey) {
+        toast.error("请先输入API密钥");
+        return;
+      }
+      
+      setIsTestingConnection(true);
+      try {
+        let success = false;
+        let message = "";
+        
+        switch (currentLLM) {
+          case "deepseek":
+            success = await testDeepSeekConnection(tempApiKey);
+            message = success ? "DeepSeek API连接成功！" : "DeepSeek API连接失败，请检查密钥";
+            break;
+          case "gemini":
+            success = await testGeminiConnection(tempApiKey);
+            message = success ? "Google Gemini API连接成功！" : "Google Gemini API连接失败，请检查密钥";
+            break;
+          case "huggingface":
+          default:
+            success = await testHuggingFaceConnection(tempApiKey);
+            message = success ? "HuggingFace API连接成功！" : "HuggingFace API连接失败，请检查密钥";
+            break;
+        }
+        
+        if (success) {
+          toast.success(message);
+        } else {
+          toast.error(message);
+        }
+      } catch (error) {
+        toast.error(`连接测试失败: ${(error as Error).message}`);
+      } finally {
+        setIsTestingConnection(false);
+      }
+    }
   };
+
+  // 测试HuggingFace连接
+  const testHuggingFaceConnection = async (apiKey: string): Promise<boolean> => {
+    try {
+      const response = await fetch("https://api-inference.huggingface.co/models/facebook/mbart-large-50-many-to-many-mmt", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          inputs: "Hello",
+          parameters: {
+            src_lang: "en_XX",
+            tgt_lang: "zh_CN"
+          }
+        })
+      });
+      
+      const data = await response.json();
+      return !data.error;
+    } catch (error) {
+      console.error("HuggingFace连接错误:", error);
+      return false;
+    }
+  };
+
+  // 测试DeepSeek连接
+  const testDeepSeekConnection = async (apiKey: string): Promise<boolean> => {
+    try {
+      const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          messages: [
+            {
+              role: "system",
+              content: "你是一个翻译助手。"
+            },
+            {
+              role: "user",
+              content: "测试连接"
+            }
+          ],
+          max_tokens: 10
+        })
+      });
+      
+      const data = await response.json();
+      return !!data.choices;
+    } catch (error) {
+      console.error("DeepSeek连接错误:", error);
+      return false;
+    }
+  };
+
+  // 测试Gemini连接
+  const testGeminiConnection = async (apiKey: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: "测试连接"
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 10
+          }
+        })
+      });
+      
+      const data = await response.json();
+      return !!data.candidates;
+    } catch (error) {
+      console.error("Gemini连接错误:", error);
+      return false;
+    }
+  };
+
+  // 同步useLLM状态
+  useEffect(() => {
+    setSelectedProvider(useLLM ? (currentLLM === "deepseek" ? "llm" : 
+                                  currentLLM === "gemini" ? "llm_gemini" : 
+                                  currentLLM === "huggingface" ? "llm_huggingface" : "llm") : "api");
+  }, [useLLM, currentLLM]);
+
+  // 同步API密钥
+  useEffect(() => {
+    setTempApiKey(llmApiKey);
+  }, [llmApiKey]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -173,10 +340,11 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
           </Button>
           <Button
             onClick={handleTestConnection}
+            disabled={isTestingConnection}
             variant="outline"
             className="flex-1 border-blue-300 text-blue-500 hover:bg-blue-50"
           >
-            测试连接
+            {isTestingConnection ? "测试中..." : "测试连接"}
           </Button>
         </div>
       </DialogContent>

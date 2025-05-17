@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Cog, Repeat, Volume2, MicIcon, ArrowDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import TranslationCard from "@/components/TranslationCard";
 import LanguageSelector from "@/components/LanguageSelector";
@@ -19,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const Index = () => {
-  const { toast } = useToast();
+  
   const [sourceText, setSourceText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
   const [sourceLanguage, setSourceLanguage] = useState<Language>(LANGUAGES[1]); // 英语
@@ -79,10 +78,8 @@ const Index = () => {
       if (result.includes("[翻译失败:")) {
         setTranslationError("翻译服务暂时不可用，请稍后再试");
         // 显示错误提示
-        toast({
-          title: "翻译服务暂时不可用",
-          description: "我们正在尝试连接到备用服务器",
-          variant: "destructive",
+        toast.error("翻译服务暂时不可用", {
+          description: "我们正在尝试连接到备用服务器"
         });
       } else {
         setTranslationError("");
@@ -91,15 +88,13 @@ const Index = () => {
       setTranslatedText(result);
     } catch (error) {
       setTranslationError("翻译服务连接失败");
-      toast({
-        title: "翻译失败",
-        description: "无法完成翻译，请稍后再试或切换翻译模式",
-        variant: "destructive",
+      toast.error("翻译失败", {
+        description: "无法完成翻译，请稍后再试或切换翻译模式"
       });
     } finally {
       setIsTranslating(false);
     }
-  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, toast, currentLLM]);
+  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM]);
 
   // 监听文本变化，自动翻译
   useEffect(() => {
@@ -112,9 +107,8 @@ const Index = () => {
   // 手动重试翻译功能
   const handleRetryTranslation = () => {
     setRetryCount(prev => prev + 1);
-    toast({
-      title: "正在重试翻译",
-      description: "尝试连接到备用翻译服务器...",
+    toast.info("正在重试翻译", {
+      description: "尝试连接到备用翻译服务器..."
     });
   };
 
@@ -145,9 +139,8 @@ const Index = () => {
       }
     }
     
-    toast({
-      title: "已选择模型",
-      description: `当前使用${getLLMDisplayName(model)}进行翻译`,
+    toast.info("已选择模型", {
+      description: `当前使用${getLLMDisplayName(model)}进行翻译`
     });
   };
   
@@ -170,16 +163,13 @@ const Index = () => {
     if (llmApiKey) {
       localStorage.setItem('llm_api_key', llmApiKey);
       setShowApiKeyInput(false);
-      toast({
-        title: "API密钥已保存",
-        description: "您的API密钥已保存在本地",
+      toast.success("API密钥已保存", {
+        description: "您的API密钥已保存在本地"
       });
       performTranslation();
     } else {
-      toast({
-        title: "请输入API密钥",
-        description: "要使用大模型翻译，需要提供有效的API密钥",
-        variant: "destructive",
+      toast.error("请输入API密钥", {
+        description: "要使用大模型翻译，需要提供有效的API密钥"
       });
     }
   };
@@ -194,17 +184,15 @@ const Index = () => {
 
   // 模拟语音输入功能
   const handleVoiceInput = () => {
-    toast({
-      title: "语音输入",
-      description: "语音输入功能即将推出...",
+    toast.info("语音输入", {
+      description: "语音输入功能即将推出..."
     });
   };
 
   // 模拟文本朗读功能
   const handleTextToSpeech = () => {
-    toast({
-      title: "文本朗读",
-      description: "文本朗读功能即将推出...",
+    toast.info("文本朗读", {
+      description: "文本朗读功能即将推出..."
     });
   };
 
