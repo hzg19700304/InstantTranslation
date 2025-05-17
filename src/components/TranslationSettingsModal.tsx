@@ -38,6 +38,16 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
   // 处理API提供商更改
   const handleProviderChange = (value: string) => {
     setSelectedProvider(value);
+    
+    // 更新LLM模型类型
+    if (value === "llm") {
+      setCurrentLLM("deepseek");
+    } else if (value === "llm_gemini") {
+      setCurrentLLM("gemini");
+    } else if (value === "llm_huggingface") {
+      setCurrentLLM("huggingface");
+    }
+    
     setUseLLM(value !== "api");
   };
 
@@ -63,62 +73,88 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
 
   // 测试连接
   const handleTestConnection = async () => {
+    // 根据当前选中的提供商确定测试方式
     if (selectedProvider === "api") {
       // 测试公共API连接
-      setIsTestingConnection(true);
-      try {
-        const response = await fetch("https://translate.argosopentech.com/languages", {
-          method: "GET",
-        });
-        
-        if (response.ok) {
-          toast.success("连接成功！LibreTranslate API可用");
-        } else {
-          toast.error("连接失败：无法访问LibreTranslate API");
-        }
-      } catch (error) {
-        toast.error("连接错误：网络问题或API不可用");
-      } finally {
-        setIsTestingConnection(false);
-      }
+      testLibreTranslateConnection();
     } else {
-      // 测试大模型连接
+      // 测试大模型连接，根据当前选择的LLM类型
       if (!tempApiKey) {
         toast.error("请先输入API密钥");
         return;
       }
       
-      setIsTestingConnection(true);
-      try {
-        let success = false;
-        let message = "";
-        
-        switch (currentLLM) {
-          case "deepseek":
-            success = await testDeepSeekConnection(tempApiKey);
-            message = success ? "DeepSeek API连接成功！" : "DeepSeek API连接失败，请检查密钥";
-            break;
-          case "gemini":
-            success = await testGeminiConnection(tempApiKey);
-            message = success ? "Google Gemini API连接成功！" : "Google Gemini API连接失败，请检查密钥";
-            break;
-          case "huggingface":
-          default:
-            success = await testHuggingFaceConnection(tempApiKey);
-            message = success ? "HuggingFace API连接成功！" : "HuggingFace API连接失败，请检查密钥";
-            break;
-        }
-        
-        if (success) {
-          toast.success(message);
-        } else {
-          toast.error(message);
-        }
-      } catch (error) {
-        toast.error(`连接测试失败: ${(error as Error).message}`);
-      } finally {
-        setIsTestingConnection(false);
+      const modelType = getModelTypeFromProvider(selectedProvider);
+      testLLMConnection(modelType, tempApiKey);
+    }
+  };
+  
+  // 从提供商选择获取模型类型
+  const getModelTypeFromProvider = (provider: string): string => {
+    switch (provider) {
+      case "llm":
+        return "deepseek";
+      case "llm_gemini":
+        return "gemini";
+      case "llm_huggingface":
+        return "huggingface";
+      default:
+        return "deepseek"; // 默认
+    }
+  };
+
+  // 测试普通翻译API
+  const testLibreTranslateConnection = async () => {
+    setIsTestingConnection(true);
+    try {
+      const response = await fetch("https://translate.argosopentech.com/languages", {
+        method: "GET",
+      });
+      
+      if (response.ok) {
+        toast.success("连接成功！LibreTranslate API可用");
+      } else {
+        toast.error("连接失败：无法访问LibreTranslate API");
       }
+    } catch (error) {
+      toast.error("连接错误：网络问题或API不可用");
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+  
+  // 测试LLM连接
+  const testLLMConnection = async (modelType: string, apiKey: string) => {
+    setIsTestingConnection(true);
+    try {
+      let success = false;
+      let message = "";
+      
+      switch (modelType) {
+        case "deepseek":
+          success = await testDeepSeekConnection(apiKey);
+          message = success ? "DeepSeek API连接成功！" : "DeepSeek API连接失败，请检查密钥";
+          break;
+        case "gemini":
+          success = await testGeminiConnection(apiKey);
+          message = success ? "Google Gemini API连接成功！" : "Google Gemini API连接失败，请检查密钥";
+          break;
+        case "huggingface":
+        default:
+          success = await testHuggingFaceConnection(apiKey);
+          message = success ? "HuggingFace API连接成功！" : "HuggingFace API连接失败，请检查密钥";
+          break;
+      }
+      
+      if (success) {
+        toast.success(message);
+      } else {
+        toast.error(message);
+      }
+    } catch (error) {
+      toast.error(`连接测试失败: ${(error as Error).message}`);
+    } finally {
+      setIsTestingConnection(false);
     }
   };
 
@@ -214,11 +250,25 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
     }
   };
 
-  // 同步useLLM状态
+  // 同步useLLM和currentLLM状态到界面选择
   useEffect(() => {
-    setSelectedProvider(useLLM ? (currentLLM === "deepseek" ? "llm" : 
-                                  currentLLM === "gemini" ? "llm_gemini" : 
-                                  currentLLM === "huggingface" ? "llm_huggingface" : "llm") : "api");
+    if (useLLM) {
+      switch (currentLLM) {
+        case "deepseek":
+          setSelectedProvider("llm");
+          break;
+        case "gemini":
+          setSelectedProvider("llm_gemini");
+          break;
+        case "huggingface":
+          setSelectedProvider("llm_huggingface");
+          break;
+        default:
+          setSelectedProvider("llm");
+      }
+    } else {
+      setSelectedProvider("api");
+    }
   }, [useLLM, currentLLM]);
 
   // 同步API密钥
