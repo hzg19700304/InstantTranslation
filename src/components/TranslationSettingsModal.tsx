@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   Sheet,
   SheetContent,
@@ -17,7 +17,7 @@ interface TranslationSettingsModalProps {
   onClose: () => void;
   useLLM: boolean;
   setUseLLM: (useLLM: boolean) => void;
-  currentLLM: string;
+  currentLLM: LLMProvider;
   setCurrentLLM: (currentLLM: LLMProvider) => void;
   llmApiKey: string;
   setLlmApiKey: (llmApiKey: string) => void;
@@ -49,13 +49,13 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
             <>
               <LLMProviderSelector 
                 currentLLM={currentLLM} 
-                setCurrentLLM={setCurrentLLM as (provider: LLMProvider) => void} 
+                setCurrentLLM={setCurrentLLM} 
               />
               
               <APIKeyInput
                 apiKey={llmApiKey}
                 setApiKey={setLlmApiKey}
-                currentLLM={currentLLM as LLMProvider}
+                currentLLM={currentLLM}
               />
             </>
           )}

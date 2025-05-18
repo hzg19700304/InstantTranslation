@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { LLMProvider } from "@/services/translation/types";
-import { getLLMDisplayName } from "@/services/translation/llmTranslation";
+import { getLLMDisplayName } from "@/services/translation";
 
 interface LLMProviderSelectorProps {
-  currentLLM: string;
+  currentLLM: LLMProvider;
   setCurrentLLM: (provider: LLMProvider) => void;
 }
 

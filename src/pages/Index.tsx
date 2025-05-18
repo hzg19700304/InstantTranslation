@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Cog, Repeat, Volume2, MicIcon, ArrowDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -137,8 +138,6 @@ const Index = () => {
       description: `当前使用${getLLMDisplayName(model)}进行翻译`
     });
   };
-  
-  // 不再定义本地的getLLMDisplayName函数，直接使用导入的函数
   
   // 保存API密钥并关闭输入框
   const saveApiKey = () => {
