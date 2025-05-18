@@ -9,13 +9,7 @@ import TranslationSettingsModal from "@/components/TranslationSettingsModal";
 import { LANGUAGES } from "@/constants/languages";
 import { Language } from "@/types/translation";
 import { translateText, translateWithLLM, getLLMDisplayName } from "@/services/translation";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { LLMProvider } from "@/services/translation/types";
 
 const Index = () => {
   
@@ -27,7 +21,7 @@ const Index = () => {
   const [useLLM, setUseLLM] = useState(false);
   const [llmApiKey, setLlmApiKey] = useState("");
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
-  const [currentLLM, setCurrentLLM] = useState<string>("huggingface"); // 默认使用HuggingFace
+  const [currentLLM, setCurrentLLM] = useState<LLMProvider>("huggingface"); // 使用LLMProvider类型
   const [retryCount, setRetryCount] = useState(0);
   const [translationError, setTranslationError] = useState("");
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -126,7 +120,7 @@ const Index = () => {
   };
   
   // 选择大模型
-  const selectLLM = (model: string) => {
+  const selectLLM = (model: LLMProvider) => {  // 修改参数类型为LLMProvider
     setCurrentLLM(model);
     
     // 如果用户当前不在使用LLM模式，自动切换到LLM模式
