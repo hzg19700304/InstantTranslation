@@ -138,10 +138,7 @@ const Index = () => {
     });
   };
   
-  // 获取LLM显示名称 - 使用导入的函数
-  const getLLMDisplayName = (model: string): string => {
-    return getLLMDisplayName(model);
-  };
+  // 不再定义本地的getLLMDisplayName函数，直接使用导入的函数
   
   // 保存API密钥并关闭输入框
   const saveApiKey = () => {
