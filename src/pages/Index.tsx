@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Cog, Repeat, Volume2, MicIcon, ArrowDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { LANGUAGES } from "@/constants/languages";
 import { Language } from "@/types/translation";
 import { translateText, translateWithLLM, getLLMDisplayName } from "@/services/translation";
 import { LLMProvider } from "@/services/translation/types";
+import { startVoiceInput, speakText } from "@/services/speech";
 
 const Index = () => {
   
@@ -26,6 +26,8 @@ const Index = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [translationError, setTranslationError] = useState("");
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isListening, setIsListening] = useState(false); // 正在进行语音输入
+  const [isSpeaking, setIsSpeaking] = useState(false); // 正在进行文本朗读
 
   // 语言切换功能
   const handleSwapLanguages = () => {
@@ -163,19 +165,97 @@ const Index = () => {
     }
   }, []);
 
-  // 模拟语音输入功能
-  const handleVoiceInput = () => {
+  // 实现语音输入功能
+  const handleVoiceInput = useCallback(() => {
+    if (isListening) {
+      toast.info("正在停止语音输入", {
+        description: "语音输入已取消"
+      });
+      return;
+    }
+    
     toast.info("语音输入", {
-      description: "语音输入功能即将推出..."
+      description: `请开始说话，使用${sourceLanguage.name}...`
     });
-  };
+    
+    setIsListening(true);
+    
+    // 开始语音识别
+    const stopListening = startVoiceInput(
+      sourceLanguage.code,
+      (text) => {
+        setSourceText(text);
+        toast.success("语音识别完成", {
+          description: `已识别: "${text.substring(0, 20)}${text.length > 20 ? '...' : ''}"`
+        });
+      },
+      () => {
+        setIsListening(false);
+      }
+    );
+    
+    // 10秒后自动停止，避免长时间监听
+    const timeout = setTimeout(() => {
+      stopListening();
+      setIsListening(false);
+      toast.info("语音输入超时", {
+        description: "已自动停止语音输入"
+      });
+    }, 10000);
+    
+    return () => {
+      clearTimeout(timeout);
+      stopListening();
+    };
+  }, [sourceLanguage.code, sourceLanguage.name, isListening]);
 
-  // 模拟文本朗读功能
-  const handleTextToSpeech = () => {
+  // 实现文本朗读功能
+  const handleTextToSpeech = useCallback(() => {
+    if (isSpeaking) {
+      window.speechSynthesis?.cancel();
+      setIsSpeaking(false);
+      toast.info("朗读已停止", {
+        description: "已取消文本朗读"
+      });
+      return;
+    }
+    
+    if (!translatedText) {
+      toast.error("没有可朗读的文本", {
+        description: "请先输入文本并完成翻译"
+      });
+      return;
+    }
+    
     toast.info("文本朗读", {
-      description: "文本朗读功能即将推出..."
+      description: "正在朗读译文..."
     });
-  };
+    
+    setIsSpeaking(true);
+    
+    // 开始朗读
+    speakText(translatedText, targetLanguage.code);
+    
+    // 监听朗读结束
+    const checkSpeaking = setInterval(() => {
+      if (!window.speechSynthesis?.speaking) {
+        setIsSpeaking(false);
+        clearInterval(checkSpeaking);
+      }
+    }, 500);
+    
+    return () => {
+      clearInterval(checkSpeaking);
+      window.speechSynthesis?.cancel();
+    };
+  }, [translatedText, targetLanguage.code, isSpeaking]);
+
+  // 组件卸载时停止所有语音活动
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis?.cancel();
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-translator-secondary/30 px-4 py-8">
@@ -299,24 +379,31 @@ const Index = () => {
           )}
         </div>
 
-        {/* 功能按钮 - 现在三个按钮在同一行 */}
+        {/* 功能按钮 - 三个按钮在同一行，更新按钮样式和状态 */}
         <div className="flex justify-center gap-3 mt-6">
           <Button
             variant="outline"
             size="sm"
             onClick={handleVoiceInput}
-            className="border-translator-primary/20 hover:bg-translator-secondary"
+            className={`border-translator-primary/20 hover:bg-translator-secondary transition-colors ${
+              isListening ? "bg-red-100 border-red-300 text-red-600" : ""
+            }`}
           >
-            <MicIcon size={16} className="mr-1.5" /> 语音输入
+            <MicIcon size={16} className={`mr-1.5 ${isListening ? "animate-pulse text-red-600" : ""}`} /> 
+            {isListening ? "停止输入" : "语音输入"}
           </Button>
           
           <Button
             variant="outline"
             size="sm"
             onClick={handleTextToSpeech}
-            className="border-translator-primary/20 hover:bg-translator-secondary"
+            className={`border-translator-primary/20 hover:bg-translator-secondary transition-colors ${
+              isSpeaking ? "bg-blue-100 border-blue-300 text-blue-600" : ""
+            }`}
+            disabled={!translatedText || isTranslating}
           >
-            <Volume2 size={16} className="mr-1.5" /> 朗读文本
+            <Volume2 size={16} className={`mr-1.5 ${isSpeaking ? "animate-pulse text-blue-600" : ""}`} /> 
+            {isSpeaking ? "停止朗读" : "朗读文本"}
           </Button>
           
           <Button
