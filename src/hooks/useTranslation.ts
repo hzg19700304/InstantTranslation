@@ -14,7 +14,7 @@ export const useTranslation = ({
   initialSourceLanguage,
   initialTargetLanguage
 }: UseTranslationProps) => {
-  // 使用提取的钩子
+  // 使用提取的钩子 - 注意保持hooks的调用顺序
   const state = useTranslationState({ 
     initialSourceLanguage, 
     initialTargetLanguage 
