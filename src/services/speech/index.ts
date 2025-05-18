@@ -41,8 +41,10 @@ export const startVoiceInput = (
   };
 
   recognition.onend = () => {
-    // 在持续模式下，如果识别停止（例如由于暂停），自动重新开始
-    // 除非通过返回的停止函数明确停止
+    // 在持续模式下，自动重启识别服务，除非明确停止
+    if (recognition.continuous) {
+      recognition.start();
+    }
     onEnd();
   };
 

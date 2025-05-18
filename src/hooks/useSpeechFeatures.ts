@@ -23,6 +23,8 @@ export const useSpeechFeatures = ({
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const stopListeningRef = useRef<(() => void) | null>(null);
+  // 追踪上一次识别的文本，用于增量添加新内容
+  const lastRecognizedTextRef = useRef<string>("");
 
   // 实现语音输入功能
   const handleVoiceInput = useCallback(() => {
@@ -46,11 +48,29 @@ export const useSpeechFeatures = ({
     
     setIsListening(true);
     
+    // 保存当前文本，以便于增量添加
+    lastRecognizedTextRef.current = sourceText;
+    
     // 开始语音识别
     const stopListening = startVoiceInput(
       sourceLanguageCode,
       (text) => {
-        setSourceText(text);
+        // 在这里我们只更新文本，如果新的文本和上一次的不同
+        if (text !== lastRecognizedTextRef.current) {
+          // 如果原来有内容，添加一个空格然后再添加新内容
+          if (lastRecognizedTextRef.current) {
+            // 检查新文本是否包含旧文本作为前缀，如果不包含则使用拼接方式
+            if (!text.startsWith(lastRecognizedTextRef.current)) {
+              setSourceText(lastRecognizedTextRef.current + " " + text);
+            } else {
+              // 如果新文本包含旧文本，则直接使用新文本
+              setSourceText(text);
+            }
+          } else {
+            setSourceText(text);
+          }
+          lastRecognizedTextRef.current = text;
+        }
       },
       () => {
         // 持续模式下不会自动停止
@@ -66,7 +86,7 @@ export const useSpeechFeatures = ({
         stopListeningRef.current = null;
       }
     };
-  }, [sourceLanguageCode, sourceLanguageName, isListening, setSourceText]);
+  }, [sourceLanguageCode, sourceLanguageName, isListening, setSourceText, sourceText]);
 
   // 实现文本朗读功能
   const handleTextToSpeech = useCallback(() => {
