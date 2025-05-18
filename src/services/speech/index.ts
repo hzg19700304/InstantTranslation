@@ -42,23 +42,50 @@ export const startVoiceInput = (
 
   recognition.onend = () => {
     // 在持续模式下，自动重启识别服务，除非明确停止
+    // 添加一个短暂延迟，避免立即重启可能导致的问题
     if (recognition.continuous) {
-      recognition.start();
+      setTimeout(() => {
+        try {
+          recognition.start();
+        } catch (error) {
+          console.error("重启语音识别失败:", error);
+        }
+      }, 200);
     }
     onEnd();
   };
 
   recognition.onerror = (event) => {
     console.error("语音识别错误:", event.error);
+    // 如果是网络错误，尝试自动重启
+    if (event.error === 'network' || event.error === 'service-not-allowed') {
+      setTimeout(() => {
+        try {
+          recognition.abort();
+          recognition.start();
+        } catch (error) {
+          console.error("重启语音识别失败:", error);
+        }
+      }, 1000);
+    }
     onEnd();
   };
 
   // 开始识别
-  recognition.start();
+  try {
+    recognition.start();
+  } catch (error) {
+    console.error("启动语音识别失败:", error);
+    return () => {};
+  }
 
   // 返回停止函数
   return () => {
-    recognition.stop();
+    try {
+      recognition.stop();
+    } catch (error) {
+      console.error("停止语音识别失败:", error);
+    }
   };
 };
 

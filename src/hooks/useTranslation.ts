@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { Language } from "@/types/translation";
 import { LLMProvider } from "@/services/translation/types";
@@ -25,6 +25,8 @@ export const useTranslation = ({
   const [currentLLM, setCurrentLLM] = useState<LLMProvider>("huggingface");
   const [retryCount, setRetryCount] = useState(0);
   const [translationError, setTranslationError] = useState("");
+  // 用于追踪上一次翻译的源文本，避免重复翻译
+  const lastTranslatedTextRef = useRef<string>("");
 
   // 语言切换功能
   const handleSwapLanguages = () => {
@@ -45,50 +47,113 @@ export const useTranslation = ({
       return;
     }
     
-    setIsTranslating(true);
-    setTranslationError("");
-    
-    try {
-      let result;
-      if (useLLM && llmApiKey) {
-        // 使用大模型翻译
-        result = await translateWithLLM(
-          sourceText,
-          sourceLanguage.code,
-          targetLanguage.code,
-          llmApiKey,
-          currentLLM
-        );
-      } else {
-        // 使用普通翻译API
-        result = await translateText(
-          sourceText,
-          sourceLanguage.code,
-          targetLanguage.code
-        );
+    // 如果已经翻译过该文本的一部分，只翻译新增部分
+    if (lastTranslatedTextRef.current && sourceText.startsWith(lastTranslatedTextRef.current)) {
+      // 如果源文本只是之前翻译过的文本，不需要重新翻译
+      if (sourceText === lastTranslatedTextRef.current) {
+        return;
       }
       
-      // 检查返回结果是否包含错误信息
-      if (result.includes("[翻译失败:")) {
-        setTranslationError("翻译服务暂时不可用，请稍后再试");
-        // 显示错误提示
-        toast.error("翻译服务暂时不可用", {
-          description: "我们正在尝试连接到备用服务器"
+      // 只翻译新增的部分
+      const newTextToTranslate = sourceText.substring(lastTranslatedTextRef.current.length).trim();
+      if (!newTextToTranslate) return;
+      
+      setIsTranslating(true);
+      setTranslationError("");
+      
+      try {
+        let newTranslation;
+        if (useLLM && llmApiKey) {
+          // 使用大模型翻译
+          newTranslation = await translateWithLLM(
+            newTextToTranslate,
+            sourceLanguage.code,
+            targetLanguage.code,
+            llmApiKey,
+            currentLLM
+          );
+        } else {
+          // 使用普通翻译API
+          newTranslation = await translateText(
+            newTextToTranslate,
+            sourceLanguage.code,
+            targetLanguage.code
+          );
+        }
+        
+        // 检查返回结果是否包含错误信息
+        if (newTranslation.includes("[翻译失败:")) {
+          setTranslationError("翻译服务暂时不可用，请稍后再试");
+          // 显示错误提示
+          toast.error("翻译服务暂时不可用", {
+            description: "我们正在尝试连接到备用服务器"
+          });
+        } else {
+          setTranslationError("");
+          // 将新翻译追加到现有翻译结果
+          setTranslatedText(prev => prev + " " + newTranslation);
+          lastTranslatedTextRef.current = sourceText;
+        }
+      } catch (error) {
+        setTranslationError("翻译服务连接失败");
+        toast.error("翻译失败", {
+          description: "无法完成翻译，请稍后再试或切换翻译模式"
         });
-      } else {
-        setTranslationError("");
+      } finally {
+        setIsTranslating(false);
       }
+    } else {
+      // 全新翻译或语言已切换
+      setIsTranslating(true);
+      setTranslationError("");
       
-      setTranslatedText(result);
-    } catch (error) {
-      setTranslationError("翻译服务连接失败");
-      toast.error("翻译失败", {
-        description: "无法完成翻译，请稍后再试或切换翻译模式"
-      });
-    } finally {
-      setIsTranslating(false);
+      try {
+        let result;
+        if (useLLM && llmApiKey) {
+          // 使用大模型翻译
+          result = await translateWithLLM(
+            sourceText,
+            sourceLanguage.code,
+            targetLanguage.code,
+            llmApiKey,
+            currentLLM
+          );
+        } else {
+          // 使用普通翻译API
+          result = await translateText(
+            sourceText,
+            sourceLanguage.code,
+            targetLanguage.code
+          );
+        }
+        
+        // 检查返回结果是否包含错误信息
+        if (result.includes("[翻译失败:")) {
+          setTranslationError("翻译服务暂时不可用，请稍后再试");
+          // 显示错误提示
+          toast.error("翻译服务暂时不可用", {
+            description: "我们正在尝试连接到备用服务器"
+          });
+        } else {
+          setTranslationError("");
+          setTranslatedText(result);
+          lastTranslatedTextRef.current = sourceText;
+        }
+      } catch (error) {
+        setTranslationError("翻译服务连接失败");
+        toast.error("翻译失败", {
+          description: "无法完成翻译，请稍后再试或切换翻译模式"
+        });
+      } finally {
+        setIsTranslating(false);
+      }
     }
   }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM]);
+
+  // 语言或模型改变时，重置上次翻译的文本记录
+  useEffect(() => {
+    lastTranslatedTextRef.current = "";
+  }, [sourceLanguage, targetLanguage, useLLM, currentLLM]);
 
   // 监听文本变化，自动翻译
   useEffect(() => {
@@ -100,6 +165,7 @@ export const useTranslation = ({
 
   // 手动重试翻译功能
   const handleRetryTranslation = () => {
+    lastTranslatedTextRef.current = "";
     setRetryCount(prev => prev + 1);
     toast.info("正在重试翻译", {
       description: "尝试连接到备用翻译服务器..."
