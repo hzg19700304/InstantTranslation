@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Language } from "@/types/translation";
 import { LLMProvider } from "@/services/translation/types";
@@ -51,7 +51,7 @@ export const useTranslationLogic = ({
   completeTranslationRef,
   isFirstTranslationRef
 }: UseTranslationLogicProps) => {
-  // 获取核心翻译功能
+  // 获取核心翻译功能 - must be called in every render at the same position
   const { processIncrementalTranslation } = useTranslationCore({
     sourceText,
     sourceLanguageCode: sourceLanguage.code,
@@ -63,7 +63,7 @@ export const useTranslationLogic = ({
     previousTranslationText: previousTranslationResultRef.current
   });
   
-  // 进行翻译
+  // 进行翻译 - define this early to ensure consistent hook order
   const performTranslation = useCallback(async () => {
     if (!sourceText) {
       setTranslatedText("");
@@ -139,9 +139,18 @@ export const useTranslationLogic = ({
         translationInProgressRef.current = false;
       }
     }
-  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, isTranslating, setIsTranslating, setTranslatedText, setTranslationError, processIncrementalTranslation]);
+  }, [
+    sourceText, 
+    sourceLanguage, 
+    targetLanguage, 
+    isTranslating, 
+    setIsTranslating, 
+    setTranslatedText, 
+    setTranslationError, 
+    processIncrementalTranslation
+  ]);
   
-  // 使用翻译计时器
+  // 使用翻译计时器 - must follow performTranslation
   useTranslationTimer({
     sourceText,
     translationTimeoutRef,
