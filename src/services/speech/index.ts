@@ -1,3 +1,4 @@
+
 // 语音服务工具
 
 // 语音输入 - Web Speech API
@@ -20,7 +21,6 @@ export const startVoiceInput = (
   recognition.interimResults = true; // 启用临时结果，获取实时反馈
   recognition.lang = language; // 设置为传入的语言代码
 
-  let finalTranscript = '';
   let interimTranscript = '';
   let isRestarting = false;
 
@@ -33,13 +33,12 @@ export const startVoiceInput = (
       const transcript = event.results[i][0].transcript;
       
       if (event.results[i].isFinal) {
-        // 这里不再累积全部历史结果，只返回当前结果
-        // 让调用者决定如何合并结果
+        // 返回最终结果，让调用者决定如何合并
         onResult(transcript.trim(), true);
         console.log("语音识别最终结果:", transcript.trim());
       } else {
         interimTranscript += transcript;
-        // 同样，只返回当前临时结果
+        // 返回临时结果
         onResult(interimTranscript.trim(), false);
         console.log("语音识别临时结果:", interimTranscript.trim());
       }

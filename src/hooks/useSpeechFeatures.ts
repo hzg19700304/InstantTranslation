@@ -20,16 +20,17 @@ export const useSpeechFeatures = ({
   sourceLanguageName,
   targetLanguageCode
 }: UseSpeechFeaturesProps) => {
-  // All state declarations must come before any other hooks
+  // 所有状态声明必须在其他钩子之前
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   
-  // Refs must come after all state declarations
+  // 引用必须在所有状态声明之后
   const stopListeningRef = useRef<(() => void) | null>(null);
   const currentVoiceSessionTextRef = useRef<string>("");
   const lastInterimResultRef = useRef<string>("");
+  const baseTextRef = useRef<string>("");
 
-  // Callbacks must come after refs
+  // 语音输入处理
   const handleVoiceInput = useCallback(() => {
     if (isListening) {
       // 停止当前的语音识别
@@ -44,7 +45,6 @@ export const useSpeechFeatures = ({
       });
 
       // 重置语音会话文本引用，为下一次语音输入做准备
-      currentVoiceSessionTextRef.current = "";
       lastInterimResultRef.current = "";
       return;
     }
@@ -55,7 +55,8 @@ export const useSpeechFeatures = ({
     
     setIsListening(true);
     
-    // 开始新的语音会话，使用当前输入框中的文本作为基础
+    // 保存当前输入框的文本作为基础文本
+    baseTextRef.current = sourceText;
     currentVoiceSessionTextRef.current = sourceText;
     
     // 开始语音识别，处理临时和最终结果
@@ -63,21 +64,27 @@ export const useSpeechFeatures = ({
       sourceLanguageCode,
       (text, isFinal) => {
         if (isFinal) {
-          // 处理最终结果
-          // 追加新识别的文本到当前文本后面，而不是替换整个文本
-          const newText = sourceText ? `${sourceText} ${text}`.trim() : text;
-          setSourceText(newText);
+          // 处理最终结果 - 将新识别的文本追加到已有文本
+          const newText = currentVoiceSessionTextRef.current 
+            ? `${currentVoiceSessionTextRef.current} ${text}`.trim() 
+            : text;
           
-          // 更新当前会话文本
+          setSourceText(newText);
           currentVoiceSessionTextRef.current = newText;
-          // 清除临时结果引用
           lastInterimResultRef.current = "";
         } else {
-          // 处理临时结果，将临时结果追加到现有文本
-          const baseText = sourceText || "";
-          const newText = `${baseText} ${text}`.trim();
+          // 处理临时结果，显示在输入框中但不影响已有文本
+          // 移除上一个临时结果，添加新的临时结果
+          let displayText = currentVoiceSessionTextRef.current || "";
+          if (lastInterimResultRef.current) {
+            // 如果存在上一个临时结果，先移除它
+            displayText = displayText.replace(new RegExp(`${lastInterimResultRef.current.trim()}$`), "").trim();
+          }
+          
+          // 添加新的临时结果
+          displayText = `${displayText} ${text}`.trim();
+          setSourceText(displayText);
           lastInterimResultRef.current = text;
-          setSourceText(newText);
         }
       },
       () => {
@@ -89,7 +96,7 @@ export const useSpeechFeatures = ({
     stopListeningRef.current = stopListening;
   }, [sourceLanguageCode, sourceLanguageName, isListening, setSourceText, sourceText]);
 
-  // Text-to-speech function
+  // 文本朗读功能
   const handleTextToSpeech = useCallback(() => {
     if (isSpeaking) {
       window.speechSynthesis?.cancel();
@@ -132,6 +139,7 @@ export const useSpeechFeatures = ({
 
   // Effects must come after all callbacks
   useEffect(() => {
+    // 组件卸载时清理资源
     return () => {
       if (stopListeningRef.current) {
         stopListeningRef.current();
@@ -139,6 +147,13 @@ export const useSpeechFeatures = ({
       window.speechSynthesis?.cancel();
     };
   }, []);
+
+  // 源文本更改时，更新当前会话文本
+  useEffect(() => {
+    if (!isListening) {
+      currentVoiceSessionTextRef.current = sourceText;
+    }
+  }, [sourceText, isListening]);
 
   return {
     isListening,

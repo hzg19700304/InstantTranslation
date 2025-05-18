@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { Language } from "@/types/translation";
@@ -13,7 +14,7 @@ export const useTranslation = ({
   initialSourceLanguage,
   initialTargetLanguage
 }: UseTranslationProps) => {
-  // All state declarations must come first
+  // 所有状态声明必须在前面
   const [sourceText, setSourceText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
   const [sourceLanguage, setSourceLanguage] = useState<Language>(initialSourceLanguage);
@@ -26,12 +27,13 @@ export const useTranslation = ({
   const [retryCount, setRetryCount] = useState(0);
   const [translationError, setTranslationError] = useState("");
   
-  // Then all refs
+  // 然后是所有引用
   const lastTranslatedTextRef = useRef<string>("");
   const currentSourceTextRef = useRef<string>("");
   const translationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const translationInProgressRef = useRef<boolean>(false);
   const previousTranslationResultRef = useRef<string>("");
+  const completeTranslationRef = useRef<string>("");
 
   // 语言切换功能
   const handleSwapLanguages = useCallback(() => {
@@ -74,14 +76,11 @@ export const useTranslation = ({
       
       // 如果当前文本是之前文本的扩展，只翻译新增部分
       if (lastTranslatedTextRef.current && sourceText.startsWith(lastTranslatedTextRef.current)) {
-        textToTranslate = sourceText.substring(lastTranslatedTextRef.current.length).trim();
-        isIncremental = true;
-        
-        // 如果没有新文本要翻译，直接返回
-        if (!textToTranslate) {
-          setIsTranslating(false);
-          translationInProgressRef.current = false;
-          return;
+        const newText = sourceText.substring(lastTranslatedTextRef.current.length).trim();
+        // 只有当新文本有内容时，才进行增量翻译
+        if (newText) {
+          textToTranslate = newText;
+          isIncremental = true;
         }
       }
       
@@ -116,13 +115,16 @@ export const useTranslation = ({
         if (currentSourceTextRef.current === sourceText) {
           if (isIncremental) {
             // 对于增量翻译，追加新的翻译结果
-            setTranslatedText(prev => {
-              // 保存之前的翻译结果
-              previousTranslationResultRef.current = prev;
-              return prev ? `${prev} ${result}`.trim() : result;
-            });
+            const newTranslation = completeTranslationRef.current ? 
+              `${completeTranslationRef.current} ${result}`.trim() : 
+              result;
+            
+            completeTranslationRef.current = newTranslation;
+            setTranslatedText(newTranslation);
+            previousTranslationResultRef.current = newTranslation;
           } else {
             // 对于全新翻译，替换整个翻译结果
+            completeTranslationRef.current = result;
             previousTranslationResultRef.current = result;
             setTranslatedText(result);
           }
@@ -146,10 +148,11 @@ export const useTranslation = ({
     }
   }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, isTranslating]);
 
-  // 语言或模型改变时，重置上次翻译的文本记录
+  // 语言或模型改变时，重置上次翻译的文本记录和完整翻译记录
   useEffect(() => {
     lastTranslatedTextRef.current = "";
     previousTranslationResultRef.current = "";
+    completeTranslationRef.current = "";
   }, [sourceLanguage, targetLanguage, useLLM, currentLLM]);
 
   // 监听文本变化，延迟自动翻译，防止频繁更新导致翻译结果闪烁
@@ -162,7 +165,7 @@ export const useTranslation = ({
     // 设置新的计时器，延长延迟时间，减少因输入停顿导致的多次翻译
     translationTimeoutRef.current = setTimeout(() => {
       performTranslation();
-    }, 1200); // 增加延迟时间，减少因短暂停顿导致的重新翻译
+    }, 1500); // 增加延迟时间，减少因短暂停顿导致的重新翻译
     
     // 组件卸载时清理计时器
     return () => {
@@ -176,6 +179,7 @@ export const useTranslation = ({
   const handleRetryTranslation = useCallback(() => {
     lastTranslatedTextRef.current = "";
     previousTranslationResultRef.current = "";
+    completeTranslationRef.current = "";
     setRetryCount(prev => prev + 1);
     toast.info("正在重试翻译", {
       description: "尝试连接到备用翻译服务器..."
