@@ -83,15 +83,25 @@ export const useTranslationLogic = ({
         if (newText) {
           textToTranslate = newText;
           isIncremental = true;
+          console.log("进行增量翻译:", { 原文本: lastTranslatedTextRef.current.substring(0, 20) + "...", 新增部分: newText });
         }
       }
       
       // 第一次翻译时保留现有的翻译结果
       const currentTranslationResult = isFirstTranslationRef.current ? "" : "";
       
+      console.log("开始翻译", { 
+        使用大模型: useLLM, 
+        源语言: sourceLanguage.code, 
+        目标语言: targetLanguage.code,
+        文本长度: textToTranslate.length,
+        是否首次翻译: isFirstTranslationRef.current
+      });
+      
       // 执行翻译
       let result;
       if (useLLM && llmApiKey) {
+        console.log(`使用${currentLLM}大模型翻译...`);
         result = await translateWithLLM(
           textToTranslate,
           sourceLanguage.code,
@@ -101,12 +111,15 @@ export const useTranslationLogic = ({
         );
       } else {
         // 普通API翻译
+        console.log("使用免费API翻译...");
         result = await translateText(
           textToTranslate,
           sourceLanguage.code,
           targetLanguage.code
         );
       }
+      
+      console.log("翻译结果:", { result: result.substring(0, 50) + (result.length > 50 ? '...' : '') });
       
       // 检查返回结果是否包含错误信息
       if (typeof result === 'string' && result.includes("[翻译失败:")) {
@@ -162,10 +175,10 @@ export const useTranslationLogic = ({
       clearTimeout(translationTimeoutRef.current);
     }
     
-    // 设置新的计时器，进一步减少延迟时间，提高响应速度
+    // 设置新的计时器，维持500ms延迟时间，确保响应速度
     translationTimeoutRef.current = setTimeout(() => {
       performTranslation();
-    }, 500); // 将延迟时间从800ms进一步减少到500ms，提高响应速度
+    }, 500);
     
     // 组件卸载时清理计时器
     return () => {
@@ -189,10 +202,11 @@ export const useTranslationLogic = ({
     previousTranslationResultRef.current = "";
     completeTranslationRef.current = "";
     isFirstTranslationRef.current = true;
+    setRetryCount(prevCount => prevCount + 1);
     toast.info("正在重试翻译", {
       description: "尝试连接到备用翻译服务器..."
     });
-  }, []);
+  }, [setRetryCount]);
 
   return { handleRetryTranslation };
 };

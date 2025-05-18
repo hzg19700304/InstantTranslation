@@ -4,17 +4,19 @@
 import { LibreTranslateResponse } from './types';
 import { getFallbackTranslation } from './utils';
 
-// 几个可用的免费翻译API端点
+// 几个可用的免费翻译API端点 - 重新排序并增加更多可靠端点
 const TRANSLATION_API_ENDPOINTS = [
-  "https://translate.terraprint.co/translate",  // 更可靠的API放在前面
+  "https://translate.terraprint.co/translate",  
+  "https://libretranslate.de/translate", // 提升优先级
+  "https://translate.argosopentech.com/translate", // 提升优先级
   "https://translate.astian.org/translate",     
   "https://translate.mentality.rip/translate",
-  "https://translate.argosopentech.com/translate",
-  "https://libretranslate.de/translate"
+  "https://api.lingva.ml/api/v1/translate", // 添加额外的API
+  "https://translate.api.skitzen.com/translate" // 添加额外的API
 ];
 
 // 默认超时时间
-const API_TIMEOUT_MS = 8000; // 增加超时时间，给API更多响应时间
+const API_TIMEOUT_MS = 10000; // 进一步增加超时时间
 
 /**
  * 通过多个免费API翻译文本，提高可靠性
@@ -28,10 +30,14 @@ export const translateText = async (
   
   // 如果源语言和目标语言相同，直接返回原文
   if (sourceLanguage === targetLanguage) return text;
+
+  console.log(`尝试翻译从 ${sourceLanguage} 到 ${targetLanguage}`, { text: text.substring(0, 50) + (text.length > 50 ? '...' : '') });
   
   // 对于一些特殊语言代码进行映射，确保与API兼容
   const mappedSourceLang = mapLanguageCode(sourceLanguage);
   const mappedTargetLang = mapLanguageCode(targetLanguage);
+
+  console.log(`映射后的语言代码: ${mappedSourceLang} -> ${mappedTargetLang}`);
   
   // 准备API请求数据
   const requestBody = {
@@ -73,7 +79,12 @@ export const translateText = async (
         throw new Error(`API状态码: ${response.status}`);
       }
       
-      const result: LibreTranslateResponse = await response.json();
+      let result: LibreTranslateResponse;
+      try {
+        result = await response.json();
+      } catch (e) {
+        throw new Error(`解析返回JSON失败: ${e}`);
+      }
       
       if (result.error) {
         throw new Error(result.error);
@@ -118,8 +129,51 @@ function mapLanguageCode(code: string): string {
     'it': 'it',
     'ru': 'ru',
     'pt': 'pt',
-    // 添加更多映射...
+    'ar': 'ar',
+    'nl': 'nl',
+    'pl': 'pl',
+    'tr': 'tr',
+    'auto': 'auto', // 添加自动检测
+    'zh_CN': 'zh',  // 处理可能的其他格式
+    'zh_TW': 'zh',
+    'en_US': 'en',
+    'en_GB': 'en',
+    // 添加可能缺失的语言代码映射
+    'cs': 'cs',     // 捷克语
+    'da': 'da',     // 丹麦语
+    'fi': 'fi',     // 芬兰语
+    'el': 'el',     // 希腊语
+    'he': 'he',     // 希伯来语
+    'hi': 'hi',     // 印地语
+    'hu': 'hu',     // 匈牙利语
+    'id': 'id',     // 印尼语
+    'no': 'no',     // 挪威语
+    'ro': 'ro',     // 罗马尼亚语
+    'sk': 'sk',     // 斯洛伐克语
+    'sv': 'sv',     // 瑞典语
+    'th': 'th',     // 泰语
+    'uk': 'uk',     // 乌克兰语
+    'vi': 'vi'      // 越南语
   };
   
   return codeMapping[code] || code;
+}
+
+// 尝试备用请求格式（用于某些特殊API）
+async function tryAlternativeRequest(apiUrl: string, text: string, sourceLang: string, targetLang: string): Promise<string | null> {
+  try {
+    // Lingva Translate API格式
+    if (apiUrl.includes('lingva.ml')) {
+      const lingvaUrl = `${apiUrl}/${sourceLang}/${targetLang}/${encodeURIComponent(text)}`;
+      const response = await fetch(lingvaUrl);
+      if (response.ok) {
+        const data = await response.json();
+        return data.translation || null;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.warn(`备用请求格式失败:`, error);
+    return null;
+  }
 }
