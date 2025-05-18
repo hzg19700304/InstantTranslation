@@ -161,10 +161,10 @@ export const useTranslationLogic = ({
       clearTimeout(translationTimeoutRef.current);
     }
     
-    // 设置新的计时器，延长延迟时间，减少因输入停顿导致的多次翻译
+    // 设置新的计时器，减少延迟时间，提高响应速度
     translationTimeoutRef.current = setTimeout(() => {
       performTranslation();
-    }, 1500); // 增加延迟时间，减少因短暂停顿导致的重新翻译
+    }, 800); // 将延迟时间从1500ms减少到800ms，提高响应速度
     
     // 组件卸载时清理计时器
     return () => {
