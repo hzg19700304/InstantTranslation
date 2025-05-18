@@ -43,6 +43,7 @@ const Index = () => {
   const {
     isListening,
     isSpeaking,
+    speechSupported,
     handleVoiceInput,
     handleTextToSpeech
   } = useSpeechFeatures({
@@ -116,6 +117,7 @@ const Index = () => {
         handleVoiceInput={handleVoiceInput}
         handleTextToSpeech={handleTextToSpeech}
         openSettingsModal={openSettingsModal}
+        speechSupported={speechSupported}
       />
     </TranslationLayout>
   );
