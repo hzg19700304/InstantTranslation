@@ -2,7 +2,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.4ecdefcee6794f5295f834e52426df93',
+  appId: 'com.lovable.instanttranslation',
   appName: 'instant-translation',
   webDir: 'dist',
   server: {
