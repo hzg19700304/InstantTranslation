@@ -1,9 +1,10 @@
 
 import { useCallback, useEffect } from "react";
 import { toast } from "sonner";
-import { translateText, translateWithLLM } from "@/services/translation";
 import { Language } from "@/types/translation";
 import { LLMProvider } from "@/services/translation/types";
+import { useTranslationCore } from "./useTranslationCore";
+import { useTranslationTimer } from "./useTranslationTimer";
 
 interface UseTranslationLogicProps {
   sourceText: string;
@@ -50,6 +51,18 @@ export const useTranslationLogic = ({
   completeTranslationRef,
   isFirstTranslationRef
 }: UseTranslationLogicProps) => {
+  // 获取核心翻译功能
+  const { processIncrementalTranslation } = useTranslationCore({
+    sourceText,
+    sourceLanguageCode: sourceLanguage.code,
+    targetLanguageCode: targetLanguage.code,
+    useLLM,
+    llmApiKey,
+    currentLLM,
+    isFirstTranslation: isFirstTranslationRef.current,
+    previousTranslationText: previousTranslationResultRef.current
+  });
+  
   // 进行翻译
   const performTranslation = useCallback(async () => {
     if (!sourceText) {
@@ -89,66 +102,24 @@ export const useTranslationLogic = ({
         }
       }
       
-      // 第一次翻译时保留现有的翻译结果
-      const currentTranslationResult = isFirstTranslationRef.current ? "" : "";
+      // 执行翻译并获取结果
+      const translationResult = await processIncrementalTranslation(
+        textToTranslate,
+        isIncremental,
+        completeTranslationRef.current
+      );
       
-      console.log("开始翻译", { 
-        使用大模型: useLLM, 
-        源语言: sourceLanguage.code, 
-        目标语言: targetLanguage.code,
-        文本长度: textToTranslate.length,
-        是否首次翻译: isFirstTranslationRef.current
-      });
-      
-      // 执行翻译
-      let result;
-      if (useLLM && llmApiKey) {
-        console.log(`使用${currentLLM}大模型翻译...`);
-        result = await translateWithLLM(
-          textToTranslate,
-          sourceLanguage.code,
-          targetLanguage.code,
-          llmApiKey,
-          currentLLM
-        );
-      } else {
-        // 普通API翻译
-        console.log("使用免费API翻译...");
-        result = await translateText(
-          textToTranslate,
-          sourceLanguage.code,
-          targetLanguage.code
-        );
-      }
-      
-      console.log("翻译结果:", { result: result.substring(0, 50) + (result.length > 50 ? '...' : '') });
-      
-      // 检查返回结果是否包含错误信息
-      if (typeof result === 'string' && result.includes("[翻译失败:")) {
+      // 处理翻译结果
+      if (translationResult === "[翻译失败]") {
         setTranslationError("翻译服务暂时不可用，请稍后再试");
-        toast.error("翻译服务暂时不可用", {
-          description: "我们正在尝试连接到备用服务器"
-        });
       } else {
         setTranslationError("");
         
         // 确认当前源文本没有变化，然后再更新翻译结果
         if (currentSourceTextRef.current === sourceText) {
-          if (isIncremental) {
-            // 对于增量翻译，追加新的翻译结果
-            const newTranslation = completeTranslationRef.current ? 
-              `${completeTranslationRef.current} ${result}`.trim() : 
-              result;
-            
-            completeTranslationRef.current = newTranslation;
-            setTranslatedText(newTranslation);
-            previousTranslationResultRef.current = newTranslation;
-          } else {
-            // 对于全新翻译
-            completeTranslationRef.current = result;
-            previousTranslationResultRef.current = result;
-            setTranslatedText(result);
-          }
+          completeTranslationRef.current = translationResult;
+          previousTranslationResultRef.current = translationResult;
+          setTranslatedText(translationResult);
           
           // 更新最后翻译的文本引用
           lastTranslatedTextRef.current = sourceText;
@@ -168,27 +139,15 @@ export const useTranslationLogic = ({
         translationInProgressRef.current = false;
       }
     }
-  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, isTranslating, setIsTranslating, setTranslatedText, setTranslationError]);
-
-  // 监听文本变化，延迟自动翻译，防止频繁更新导致翻译结果闪烁
-  useEffect(() => {
-    // 取消之前的计时器
-    if (translationTimeoutRef.current) {
-      clearTimeout(translationTimeoutRef.current);
-    }
-    
-    // 设置新的计时器，维持500ms延迟时间，确保响应速度
-    translationTimeoutRef.current = setTimeout(() => {
-      performTranslation();
-    }, 500);
-    
-    // 组件卸载时清理计时器
-    return () => {
-      if (translationTimeoutRef.current) {
-        clearTimeout(translationTimeoutRef.current);
-      }
-    };
-  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, performTranslation, retryCount]);
+  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, isTranslating, setIsTranslating, setTranslatedText, setTranslationError, processIncrementalTranslation]);
+  
+  // 使用翻译计时器
+  useTranslationTimer({
+    sourceText,
+    translationTimeoutRef,
+    performTranslation,
+    dependencies: [sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, retryCount]
+  });
 
   // 语言或模型改变时，重置上次翻译的文本记录和完整翻译记录
   useEffect(() => {
@@ -212,4 +171,3 @@ export const useTranslationLogic = ({
 
   return { handleRetryTranslation };
 };
-
