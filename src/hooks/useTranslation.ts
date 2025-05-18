@@ -27,6 +27,10 @@ export const useTranslation = ({
   const [translationError, setTranslationError] = useState("");
   // 用于追踪上一次翻译的源文本，避免重复翻译
   const lastTranslatedTextRef = useRef<string>("");
+  // 用于追踪当前的源文本，即使在翻译过程中也能保持
+  const currentSourceTextRef = useRef<string>("");
+  // 用于保存翻译延迟计时器
+  const translationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 语言切换功能
   const handleSwapLanguages = () => {
@@ -46,6 +50,9 @@ export const useTranslation = ({
       setTranslationError("");
       return;
     }
+    
+    // 保存当前待翻译的源文本，防止在翻译过程中文本变化导致翻译结果被清空
+    currentSourceTextRef.current = sourceText;
     
     // 如果已经翻译过该文本的一部分，只翻译新增部分
     if (lastTranslatedTextRef.current && sourceText.startsWith(lastTranslatedTextRef.current)) {
@@ -90,9 +97,12 @@ export const useTranslation = ({
           });
         } else {
           setTranslationError("");
-          // 将新翻译追加到现有翻译结果
-          setTranslatedText(prev => prev + " " + newTranslation);
-          lastTranslatedTextRef.current = sourceText;
+          // 确认当前源文本没有变化，然后再更新翻译结果
+          if (currentSourceTextRef.current === sourceText) {
+            // 将新翻译追加到现有翻译结果
+            setTranslatedText(prev => prev + " " + newTranslation);
+            lastTranslatedTextRef.current = sourceText;
+          }
         }
       } catch (error) {
         setTranslationError("翻译服务连接失败");
@@ -100,7 +110,10 @@ export const useTranslation = ({
           description: "无法完成翻译，请稍后再试或切换翻译模式"
         });
       } finally {
-        setIsTranslating(false);
+        // 确认当前源文本没有变化，才结束翻译状态
+        if (currentSourceTextRef.current === sourceText) {
+          setIsTranslating(false);
+        }
       }
     } else {
       // 全新翻译或语言已切换
@@ -136,8 +149,11 @@ export const useTranslation = ({
           });
         } else {
           setTranslationError("");
-          setTranslatedText(result);
-          lastTranslatedTextRef.current = sourceText;
+          // 确认当前源文本没有变化，然后再更新翻译结果
+          if (currentSourceTextRef.current === sourceText) {
+            setTranslatedText(result);
+            lastTranslatedTextRef.current = sourceText;
+          }
         }
       } catch (error) {
         setTranslationError("翻译服务连接失败");
@@ -145,7 +161,10 @@ export const useTranslation = ({
           description: "无法完成翻译，请稍后再试或切换翻译模式"
         });
       } finally {
-        setIsTranslating(false);
+        // 确认当前源文本没有变化，才结束翻译状态
+        if (currentSourceTextRef.current === sourceText) {
+          setIsTranslating(false);
+        }
       }
     }
   }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM]);
@@ -155,12 +174,24 @@ export const useTranslation = ({
     lastTranslatedTextRef.current = "";
   }, [sourceLanguage, targetLanguage, useLLM, currentLLM]);
 
-  // 监听文本变化，自动翻译
+  // 监听文本变化，延迟自动翻译，防止频繁更新导致翻译结果闪烁
   useEffect(() => {
-    const translateTimeout = setTimeout(() => {
+    // 取消之前的计时器
+    if (translationTimeoutRef.current) {
+      clearTimeout(translationTimeoutRef.current);
+    }
+    
+    // 设置新的计时器
+    translationTimeoutRef.current = setTimeout(() => {
       performTranslation();
-    }, 500);
-    return () => clearTimeout(translateTimeout);
+    }, 800); // 延长延迟时间，减少因输入停顿导致的多次翻译
+    
+    // 组件卸载时清理计时器
+    return () => {
+      if (translationTimeoutRef.current) {
+        clearTimeout(translationTimeoutRef.current);
+      }
+    };
   }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, performTranslation, retryCount]);
 
   // 手动重试翻译功能
@@ -250,3 +281,4 @@ export const useTranslation = ({
     saveApiKey
   };
 };
+

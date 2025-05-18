@@ -54,41 +54,24 @@ export const useSpeechFeatures = ({
     
     setIsListening(true);
     
-    // 开始新的语音会话，保留当前文本作为基础
+    // 开始新的语音会话，使用当前输入框中的文本作为基础
     currentVoiceSessionTextRef.current = sourceText;
     
-    // 开始语音识别，添加isFinal标志来区分临时和最终结果
+    // 开始语音识别，处理临时和最终结果
     const stopListening = startVoiceInput(
       sourceLanguageCode,
       (text, isFinal) => {
         if (isFinal) {
-          // 处理最终结果
-          // 将新的最终文本追加到当前会话文本中
-          if (text !== lastInterimResultRef.current) {
-            const newSessionText = currentVoiceSessionTextRef.current 
-              ? `${currentVoiceSessionTextRef.current} ${text}`
-              : text;
-              
-            // 更新当前会话文本
-            currentVoiceSessionTextRef.current = newSessionText;
-            
-            // 更新输入框文本
-            setSourceText(newSessionText);
-            
-            // 清除临时结果引用
-            lastInterimResultRef.current = "";
-          }
+          // 处理最终结果，这里的text已经包含了整个会话的文本
+          setSourceText(text);
+          // 更新当前会话文本
+          currentVoiceSessionTextRef.current = text;
+          // 清除临时结果引用
+          lastInterimResultRef.current = "";
         } else {
-          // 处理临时结果，临时显示但不更新会话文本
+          // 处理临时结果，这里也直接使用text，因为语音服务已经合并了之前的结果
           lastInterimResultRef.current = text;
-          
-          // 计算完整的预览文本
-          const previewText = currentVoiceSessionTextRef.current 
-            ? `${currentVoiceSessionTextRef.current} ${text}`
-            : text;
-            
-          // 仅更新UI显示，但不更新会话文本
-          setSourceText(previewText);
+          setSourceText(text);
         }
       },
       () => {
@@ -168,3 +151,4 @@ export const useSpeechFeatures = ({
     handleTextToSpeech
   };
 };
+
