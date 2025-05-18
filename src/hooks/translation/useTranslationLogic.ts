@@ -17,6 +17,7 @@ interface UseTranslationLogicProps {
   llmApiKey: string;
   currentLLM: LLMProvider;
   retryCount: number;
+  setRetryCount: (value: number | ((prevCount: number) => number)) => void;
   
   // 引用
   lastTranslatedTextRef: React.MutableRefObject<string>;
@@ -40,6 +41,7 @@ export const useTranslationLogic = ({
   llmApiKey,
   currentLLM,
   retryCount,
+  setRetryCount,
   lastTranslatedTextRef,
   currentSourceTextRef,
   translationTimeoutRef,
@@ -210,3 +212,4 @@ export const useTranslationLogic = ({
 
   return { handleRetryTranslation };
 };
+

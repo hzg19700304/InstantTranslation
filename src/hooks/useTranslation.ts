@@ -45,6 +45,7 @@ export const useTranslation = ({
     llmApiKey: llmSettings.llmApiKey,
     currentLLM: llmSettings.currentLLM,
     retryCount: state.retryCount,
+    setRetryCount: state.setRetryCount,
     
     // 引用
     lastTranslatedTextRef: state.lastTranslatedTextRef,
