@@ -6,15 +6,15 @@ import { getFallbackTranslation } from './utils';
 
 // 几个可用的免费翻译API端点
 const TRANSLATION_API_ENDPOINTS = [
+  "https://translate.terraprint.co/translate",  // 更可靠的API放在前面
+  "https://translate.astian.org/translate",     
+  "https://translate.mentality.rip/translate",
   "https://translate.argosopentech.com/translate",
-  "https://libretranslate.de/translate",
-  "https://translate.terraprint.co/translate",  // 新增备用API
-  "https://translate.astian.org/translate",     // 新增备用API
-  "https://translate.mentality.rip/translate"   // 新增备用API
+  "https://libretranslate.de/translate"
 ];
 
 // 默认超时时间
-const API_TIMEOUT_MS = 5000;
+const API_TIMEOUT_MS = 8000; // 增加超时时间，给API更多响应时间
 
 /**
  * 通过多个免费API翻译文本，提高可靠性
@@ -29,11 +29,15 @@ export const translateText = async (
   // 如果源语言和目标语言相同，直接返回原文
   if (sourceLanguage === targetLanguage) return text;
   
+  // 对于一些特殊语言代码进行映射，确保与API兼容
+  const mappedSourceLang = mapLanguageCode(sourceLanguage);
+  const mappedTargetLang = mapLanguageCode(targetLanguage);
+  
   // 准备API请求数据
   const requestBody = {
     q: text,
-    source: sourceLanguage,
-    target: targetLanguage,
+    source: mappedSourceLang,
+    target: mappedTargetLang,
     format: "text"
   };
   
@@ -75,6 +79,10 @@ export const translateText = async (
         throw new Error(result.error);
       }
       
+      if (!result.translatedText || result.translatedText.trim() === '') {
+        throw new Error("返回的翻译结果为空");
+      }
+      
       console.log(`成功从${apiUrl}获取翻译`);
       return result.translatedText;
     } catch (error) {
@@ -87,6 +95,31 @@ export const translateText = async (
   console.error("所有翻译API都失败了:", lastError);
   
   // 所有API都失败时，提供简单的回退翻译功能
-  return getFallbackTranslation(text, sourceLanguage, targetLanguage) || 
-         `[翻译失败: 无法连接到翻译服务]`;
+  const fallbackResult = getFallbackTranslation(text, sourceLanguage, targetLanguage);
+  return fallbackResult || `[翻译失败: 无法连接到翻译服务]`;
 };
+
+/**
+ * 映射语言代码以确保与API兼容
+ */
+function mapLanguageCode(code: string): string {
+  // 一些API使用不同的语言代码，这里进行必要的映射
+  const codeMapping: Record<string, string> = {
+    'zh': 'zh',
+    'zh-CN': 'zh',
+    'zh-TW': 'zh',
+    'en': 'en',
+    'en-US': 'en',
+    'ja': 'ja',
+    'ko': 'ko',
+    'fr': 'fr',
+    'de': 'de',
+    'es': 'es',
+    'it': 'it',
+    'ru': 'ru',
+    'pt': 'pt',
+    // 添加更多映射...
+  };
+  
+  return codeMapping[code] || code;
+}

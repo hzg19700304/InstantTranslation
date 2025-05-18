@@ -100,6 +100,7 @@ export const useTranslationLogic = ({
           currentLLM
         );
       } else {
+        // 普通API翻译
         result = await translateText(
           textToTranslate,
           sourceLanguage.code,
@@ -108,7 +109,7 @@ export const useTranslationLogic = ({
       }
       
       // 检查返回结果是否包含错误信息
-      if (result.includes("[翻译失败:")) {
+      if (typeof result === 'string' && result.includes("[翻译失败:")) {
         setTranslationError("翻译服务暂时不可用，请稍后再试");
         toast.error("翻译服务暂时不可用", {
           description: "我们正在尝试连接到备用服务器"
@@ -161,10 +162,10 @@ export const useTranslationLogic = ({
       clearTimeout(translationTimeoutRef.current);
     }
     
-    // 设置新的计时器，减少延迟时间，提高响应速度
+    // 设置新的计时器，进一步减少延迟时间，提高响应速度
     translationTimeoutRef.current = setTimeout(() => {
       performTranslation();
-    }, 800); // 将延迟时间从1500ms减少到800ms，提高响应速度
+    }, 500); // 将延迟时间从800ms进一步减少到500ms，提高响应速度
     
     // 组件卸载时清理计时器
     return () => {
