@@ -20,7 +20,7 @@ export const useSpeechFeatures = ({
   sourceLanguageName,
   targetLanguageCode
 }: UseSpeechFeaturesProps) => {
-  // 所有状态声明必须在其他钩子之前
+  // 所有状态声明必须在前面
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   
