@@ -20,15 +20,16 @@ export const useSpeechFeatures = ({
   sourceLanguageName,
   targetLanguageCode
 }: UseSpeechFeaturesProps) => {
+  // All state declarations must come before any other hooks
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  
+  // Refs must come after all state declarations
   const stopListeningRef = useRef<(() => void) | null>(null);
-  // 追踪语音识别会话中的文本，这不会被清空，除非手动取消语音识别
   const currentVoiceSessionTextRef = useRef<string>("");
-  // 追踪最近一次临时识别结果，用于避免重复追加相同的文本
   const lastInterimResultRef = useRef<string>("");
 
-  // 实现语音输入功能
+  // Callbacks must come after refs
   const handleVoiceInput = useCallback(() => {
     if (isListening) {
       // 停止当前的语音识别
@@ -81,19 +82,9 @@ export const useSpeechFeatures = ({
     );
     
     stopListeningRef.current = stopListening;
-    
-    return () => {
-      if (stopListeningRef.current) {
-        stopListeningRef.current();
-        stopListeningRef.current = null;
-        // 清除语音会话引用
-        currentVoiceSessionTextRef.current = "";
-        lastInterimResultRef.current = "";
-      }
-    };
   }, [sourceLanguageCode, sourceLanguageName, isListening, setSourceText, sourceText]);
 
-  // 实现文本朗读功能
+  // Text-to-speech function
   const handleTextToSpeech = useCallback(() => {
     if (isSpeaking) {
       window.speechSynthesis?.cancel();
@@ -134,7 +125,7 @@ export const useSpeechFeatures = ({
     };
   }, [translatedText, targetLanguageCode, isSpeaking]);
 
-  // 组件卸载时停止所有语音活动
+  // Effects must come after all callbacks
   useEffect(() => {
     return () => {
       if (stopListeningRef.current) {
@@ -151,4 +142,3 @@ export const useSpeechFeatures = ({
     handleTextToSpeech
   };
 };
-
