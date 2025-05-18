@@ -43,7 +43,7 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
       
       <TranslationCard
         language={targetLanguage}
-        value={isTranslating ? "翻译中..." : translatedText}
+        value={translatedText}
         className={isTranslating ? "opacity-70" : ""}
       />
       

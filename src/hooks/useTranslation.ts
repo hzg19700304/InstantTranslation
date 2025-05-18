@@ -34,6 +34,7 @@ export const useTranslation = ({
   const translationInProgressRef = useRef<boolean>(false);
   const previousTranslationResultRef = useRef<string>("");
   const completeTranslationRef = useRef<string>("");
+  const isFirstTranslationRef = useRef<boolean>(true);
 
   // 语言切换功能
   const handleSwapLanguages = useCallback(() => {
@@ -58,7 +59,7 @@ export const useTranslation = ({
     currentSourceTextRef.current = sourceText;
     
     // 避免重复翻译相同的文本
-    if (sourceText === lastTranslatedTextRef.current) {
+    if (sourceText === lastTranslatedTextRef.current && !isFirstTranslationRef.current) {
       return;
     }
     
@@ -75,7 +76,7 @@ export const useTranslation = ({
       let isIncremental = false;
       
       // 如果当前文本是之前文本的扩展，只翻译新增部分
-      if (lastTranslatedTextRef.current && sourceText.startsWith(lastTranslatedTextRef.current)) {
+      if (lastTranslatedTextRef.current && sourceText.startsWith(lastTranslatedTextRef.current) && !isFirstTranslationRef.current) {
         const newText = sourceText.substring(lastTranslatedTextRef.current.length).trim();
         // 只有当新文本有内容时，才进行增量翻译
         if (newText) {
@@ -83,6 +84,9 @@ export const useTranslation = ({
           isIncremental = true;
         }
       }
+      
+      // 第一次翻译时保留现有的翻译结果
+      const currentTranslationResult = isFirstTranslationRef.current ? translatedText : "";
       
       // 执行翻译
       let result;
@@ -123,14 +127,19 @@ export const useTranslation = ({
             setTranslatedText(newTranslation);
             previousTranslationResultRef.current = newTranslation;
           } else {
-            // 对于全新翻译，替换整个翻译结果
-            completeTranslationRef.current = result;
-            previousTranslationResultRef.current = result;
-            setTranslatedText(result);
+            // 对于全新翻译，但保留当前结果
+            const newTranslation = currentTranslationResult ? 
+              `${currentTranslationResult} ${result}`.trim() : 
+              result;
+              
+            completeTranslationRef.current = newTranslation;
+            previousTranslationResultRef.current = newTranslation;
+            setTranslatedText(newTranslation);
           }
           
           // 更新最后翻译的文本引用
           lastTranslatedTextRef.current = sourceText;
+          isFirstTranslationRef.current = false;
         }
       }
     } catch (error) {
@@ -146,13 +155,14 @@ export const useTranslation = ({
         translationInProgressRef.current = false;
       }
     }
-  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, isTranslating]);
+  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, isTranslating, translatedText]);
 
   // 语言或模型改变时，重置上次翻译的文本记录和完整翻译记录
   useEffect(() => {
     lastTranslatedTextRef.current = "";
     previousTranslationResultRef.current = "";
     completeTranslationRef.current = "";
+    isFirstTranslationRef.current = true;
   }, [sourceLanguage, targetLanguage, useLLM, currentLLM]);
 
   // 监听文本变化，延迟自动翻译，防止频繁更新导致翻译结果闪烁
@@ -180,6 +190,7 @@ export const useTranslation = ({
     lastTranslatedTextRef.current = "";
     previousTranslationResultRef.current = "";
     completeTranslationRef.current = "";
+    isFirstTranslationRef.current = true;
     setRetryCount(prev => prev + 1);
     toast.info("正在重试翻译", {
       description: "尝试连接到备用翻译服务器..."
