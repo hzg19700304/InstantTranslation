@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Cog } from "lucide-react";
+import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TranslationSettingsModal from "@/components/TranslationSettingsModal";
 import { LLMProvider } from "@/services/translation/types";

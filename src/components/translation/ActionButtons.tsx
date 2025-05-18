@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Mic, MicOff, Volume2, Cog } from "lucide-react";
+import { Mic, MicOff, Volume2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ActionButtonsProps {
@@ -59,7 +59,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         onClick={openSettingsModal}
         className="border-translator-primary/20 hover:bg-translator-secondary"
       >
-        <Cog size={16} className="mr-1.5" /> 配置
+        <Settings size={16} className="mr-1.5" /> 配置
       </Button>
     </div>
   );
