@@ -4,7 +4,7 @@
 // 语音输入 - Web Speech API
 export const startVoiceInput = (
   language: string,
-  onResult: (text: string) => void,
+  onResult: (text: string, isFinal: boolean) => void,
   onEnd: () => void
 ): (() => void) => {
   if (!window.webkitSpeechRecognition && !window.SpeechRecognition) {
@@ -22,10 +22,11 @@ export const startVoiceInput = (
   recognition.lang = language; // 设置为传入的语言代码
 
   let finalTranscript = '';
+  let interimTranscript = '';
 
   // 识别结果处理
   recognition.onresult = (event) => {
-    let interimTranscript = '';
+    interimTranscript = '';
     
     // 遍历所有识别结果
     for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -33,9 +34,12 @@ export const startVoiceInput = (
       
       if (event.results[i].isFinal) {
         finalTranscript += transcript + ' ';
-        onResult(finalTranscript.trim());
+        // 将最终结果传递给回调函数，并标记为最终结果
+        onResult(finalTranscript.trim(), true);
       } else {
         interimTranscript += transcript;
+        // 将临时结果传递给回调函数，但标记为非最终结果
+        onResult(interimTranscript.trim(), false);
       }
     }
   };

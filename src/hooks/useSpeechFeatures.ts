@@ -23,8 +23,10 @@ export const useSpeechFeatures = ({
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const stopListeningRef = useRef<(() => void) | null>(null);
-  // 追踪上一次识别的文本，用于增量添加新内容
-  const lastRecognizedTextRef = useRef<string>("");
+  // 追踪语音识别会话中的文本，这不会被清空，除非手动取消语音识别
+  const currentVoiceSessionTextRef = useRef<string>("");
+  // 追踪最近一次临时识别结果，用于避免重复追加相同的文本
+  const lastInterimResultRef = useRef<string>("");
 
   // 实现语音输入功能
   const handleVoiceInput = useCallback(() => {
@@ -39,6 +41,10 @@ export const useSpeechFeatures = ({
       toast.info("语音输入已停止", {
         description: "持续聆听模式已关闭"
       });
+
+      // 重置语音会话文本引用，为下一次语音输入做准备
+      currentVoiceSessionTextRef.current = "";
+      lastInterimResultRef.current = "";
       return;
     }
     
@@ -48,28 +54,41 @@ export const useSpeechFeatures = ({
     
     setIsListening(true);
     
-    // 保存当前文本，以便于增量添加
-    lastRecognizedTextRef.current = sourceText;
+    // 开始新的语音会话，保留当前文本作为基础
+    currentVoiceSessionTextRef.current = sourceText;
     
-    // 开始语音识别
+    // 开始语音识别，添加isFinal标志来区分临时和最终结果
     const stopListening = startVoiceInput(
       sourceLanguageCode,
-      (text) => {
-        // 在这里我们只更新文本，如果新的文本和上一次的不同
-        if (text !== lastRecognizedTextRef.current) {
-          // 如果原来有内容，添加一个空格然后再添加新内容
-          if (lastRecognizedTextRef.current) {
-            // 检查新文本是否包含旧文本作为前缀，如果不包含则使用拼接方式
-            if (!text.startsWith(lastRecognizedTextRef.current)) {
-              setSourceText(lastRecognizedTextRef.current + " " + text);
-            } else {
-              // 如果新文本包含旧文本，则直接使用新文本
-              setSourceText(text);
-            }
-          } else {
-            setSourceText(text);
+      (text, isFinal) => {
+        if (isFinal) {
+          // 处理最终结果
+          // 将新的最终文本追加到当前会话文本中
+          if (text !== lastInterimResultRef.current) {
+            const newSessionText = currentVoiceSessionTextRef.current 
+              ? `${currentVoiceSessionTextRef.current} ${text}`
+              : text;
+              
+            // 更新当前会话文本
+            currentVoiceSessionTextRef.current = newSessionText;
+            
+            // 更新输入框文本
+            setSourceText(newSessionText);
+            
+            // 清除临时结果引用
+            lastInterimResultRef.current = "";
           }
-          lastRecognizedTextRef.current = text;
+        } else {
+          // 处理临时结果，临时显示但不更新会话文本
+          lastInterimResultRef.current = text;
+          
+          // 计算完整的预览文本
+          const previewText = currentVoiceSessionTextRef.current 
+            ? `${currentVoiceSessionTextRef.current} ${text}`
+            : text;
+            
+          // 仅更新UI显示，但不更新会话文本
+          setSourceText(previewText);
         }
       },
       () => {
@@ -84,6 +103,9 @@ export const useSpeechFeatures = ({
       if (stopListeningRef.current) {
         stopListeningRef.current();
         stopListeningRef.current = null;
+        // 清除语音会话引用
+        currentVoiceSessionTextRef.current = "";
+        lastInterimResultRef.current = "";
       }
     };
   }, [sourceLanguageCode, sourceLanguageName, isListening, setSourceText, sourceText]);
