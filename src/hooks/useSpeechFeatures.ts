@@ -63,16 +63,21 @@ export const useSpeechFeatures = ({
       sourceLanguageCode,
       (text, isFinal) => {
         if (isFinal) {
-          // 处理最终结果，这里的text已经包含了整个会话的文本
-          setSourceText(text);
+          // 处理最终结果
+          // 追加新识别的文本到当前文本后面，而不是替换整个文本
+          const newText = sourceText ? `${sourceText} ${text}`.trim() : text;
+          setSourceText(newText);
+          
           // 更新当前会话文本
-          currentVoiceSessionTextRef.current = text;
+          currentVoiceSessionTextRef.current = newText;
           // 清除临时结果引用
           lastInterimResultRef.current = "";
         } else {
-          // 处理临时结果，这里也直接使用text，因为语音服务已经合并了之前的结果
+          // 处理临时结果，将临时结果追加到现有文本
+          const baseText = sourceText || "";
+          const newText = `${baseText} ${text}`.trim();
           lastInterimResultRef.current = text;
-          setSourceText(text);
+          setSourceText(newText);
         }
       },
       () => {

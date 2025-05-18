@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { Language } from "@/types/translation";
@@ -32,6 +31,7 @@ export const useTranslation = ({
   const currentSourceTextRef = useRef<string>("");
   const translationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const translationInProgressRef = useRef<boolean>(false);
+  const previousTranslationResultRef = useRef<string>("");
 
   // 语言切换功能
   const handleSwapLanguages = useCallback(() => {
@@ -61,86 +61,74 @@ export const useTranslation = ({
     }
     
     // 设置翻译中状态
-    setIsTranslating(true);
+    if (!isTranslating) {
+      setIsTranslating(true);
+    }
     setTranslationError("");
     translationInProgressRef.current = true;
     
     try {
-      // 判断是否需要增量翻译
-      let result;
+      // 确定要翻译的文本
+      let textToTranslate = sourceText;
+      let isIncremental = false;
+      
+      // 如果当前文本是之前文本的扩展，只翻译新增部分
       if (lastTranslatedTextRef.current && sourceText.startsWith(lastTranslatedTextRef.current)) {
-        // 只翻译新增的部分
-        const newTextToTranslate = sourceText.substring(lastTranslatedTextRef.current.length).trim();
-        if (!newTextToTranslate) {
+        textToTranslate = sourceText.substring(lastTranslatedTextRef.current.length).trim();
+        isIncremental = true;
+        
+        // 如果没有新文本要翻译，直接返回
+        if (!textToTranslate) {
           setIsTranslating(false);
           translationInProgressRef.current = false;
           return;
         }
-        
-        if (useLLM && llmApiKey) {
-          result = await translateWithLLM(
-            newTextToTranslate,
-            sourceLanguage.code,
-            targetLanguage.code,
-            llmApiKey,
-            currentLLM
-          );
-        } else {
-          result = await translateText(
-            newTextToTranslate,
-            sourceLanguage.code,
-            targetLanguage.code
-          );
-        }
-        
-        // 检查返回结果是否包含错误信息
-        if (result.includes("[翻译失败:")) {
-          setTranslationError("翻译服务暂时不可用，请稍后再试");
-          toast.error("翻译服务暂时不可用", {
-            description: "我们正在尝试连接到备用服务器"
-          });
-        } else {
-          setTranslationError("");
-          // 将新翻译追加到现有翻译结果
-          if (currentSourceTextRef.current === sourceText) {
-            setTranslatedText(prev => {
-              const newTranslation = prev ? `${prev} ${result}` : result;
-              return newTranslation;
-            });
-            lastTranslatedTextRef.current = sourceText;
-          }
-        }
+      }
+      
+      // 执行翻译
+      let result;
+      if (useLLM && llmApiKey) {
+        result = await translateWithLLM(
+          textToTranslate,
+          sourceLanguage.code,
+          targetLanguage.code,
+          llmApiKey,
+          currentLLM
+        );
       } else {
-        // 全新翻译或语言已切换
-        if (useLLM && llmApiKey) {
-          result = await translateWithLLM(
-            sourceText,
-            sourceLanguage.code,
-            targetLanguage.code,
-            llmApiKey,
-            currentLLM
-          );
-        } else {
-          result = await translateText(
-            sourceText,
-            sourceLanguage.code,
-            targetLanguage.code
-          );
-        }
+        result = await translateText(
+          textToTranslate,
+          sourceLanguage.code,
+          targetLanguage.code
+        );
+      }
+      
+      // 检查返回结果是否包含错误信息
+      if (result.includes("[翻译失败:")) {
+        setTranslationError("翻译服务暂时不可用，请稍后再试");
+        toast.error("翻译服务暂时不可用", {
+          description: "我们正在尝试连接到备用服务器"
+        });
+      } else {
+        setTranslationError("");
         
-        // 检查返回结果是否包含错误信息
-        if (result.includes("[翻译失败:")) {
-          setTranslationError("翻译服务暂时不可用，请稍后再试");
-          toast.error("翻译服务暂时不可用", {
-            description: "我们正在尝试连接到备用服务器"
-          });
-        } else {
-          setTranslationError("");
-          // 确认当前源文本没有变化，然后再更新翻译结果
-          if (currentSourceTextRef.current === sourceText) {
+        // 确认当前源文本没有变化，然后再更新翻译结果
+        if (currentSourceTextRef.current === sourceText) {
+          if (isIncremental) {
+            // 对于增量翻译，追加新的翻译结果
+            setTranslatedText(prev => {
+              // 保存之前的翻译结果
+              previousTranslationResultRef.current = prev;
+              return prev ? `${prev} ${result}`.trim() : result;
+            });
+          } else {
+            // 对于全新翻译，替换整个翻译结果
+            previousTranslationResultRef.current = result;
             setTranslatedText(result);
-            lastTranslatedTextRef.current = sourceText;
           }
+          
+          // 更新最后翻译的文本引用
+          lastTranslatedTextRef.current = sourceText;
         }
       }
     } catch (error) {
@@ -156,11 +144,12 @@ export const useTranslation = ({
         translationInProgressRef.current = false;
       }
     }
-  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM]);
+  }, [sourceText, sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, isTranslating]);
 
   // 语言或模型改变时，重置上次翻译的文本记录
   useEffect(() => {
     lastTranslatedTextRef.current = "";
+    previousTranslationResultRef.current = "";
   }, [sourceLanguage, targetLanguage, useLLM, currentLLM]);
 
   // 监听文本变化，延迟自动翻译，防止频繁更新导致翻译结果闪烁
@@ -170,10 +159,10 @@ export const useTranslation = ({
       clearTimeout(translationTimeoutRef.current);
     }
     
-    // 设置新的计时器
+    // 设置新的计时器，延长延迟时间，减少因输入停顿导致的多次翻译
     translationTimeoutRef.current = setTimeout(() => {
       performTranslation();
-    }, 800); // 延长延迟时间，减少因输入停顿导致的多次翻译
+    }, 1200); // 增加延迟时间，减少因短暂停顿导致的重新翻译
     
     // 组件卸载时清理计时器
     return () => {
@@ -186,6 +175,7 @@ export const useTranslation = ({
   // 手动重试翻译功能
   const handleRetryTranslation = useCallback(() => {
     lastTranslatedTextRef.current = "";
+    previousTranslationResultRef.current = "";
     setRetryCount(prev => prev + 1);
     toast.info("正在重试翻译", {
       description: "尝试连接到备用翻译服务器..."

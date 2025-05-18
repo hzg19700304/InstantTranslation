@@ -1,4 +1,3 @@
-
 // 语音服务工具
 
 // 语音输入 - Web Speech API
@@ -34,23 +33,15 @@ export const startVoiceInput = (
       const transcript = event.results[i][0].transcript;
       
       if (event.results[i].isFinal) {
-        finalTranscript += transcript + ' ';
-        
-        // 确保临时结果为空，避免重复添加内容
-        interimTranscript = '';
-        
-        // 将最终结果传递给回调函数，并标记为最终结果
-        onResult(finalTranscript.trim(), true);
-        console.log("语音识别最终结果:", finalTranscript.trim());
+        // 这里不再累积全部历史结果，只返回当前结果
+        // 让调用者决定如何合并结果
+        onResult(transcript.trim(), true);
+        console.log("语音识别最终结果:", transcript.trim());
       } else {
         interimTranscript += transcript;
-        
-        // 计算临时结果的完整文本（包含已经确认的内容和当前临时内容）
-        const fullText = finalTranscript + interimTranscript;
-        
-        // 将临时结果传递给回调函数，但标记为非最终结果
-        onResult(fullText.trim(), false);
-        console.log("语音识别临时结果:", fullText.trim());
+        // 同样，只返回当前临时结果
+        onResult(interimTranscript.trim(), false);
+        console.log("语音识别临时结果:", interimTranscript.trim());
       }
     }
   };
