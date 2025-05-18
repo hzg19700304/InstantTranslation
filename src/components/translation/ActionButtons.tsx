@@ -1,6 +1,6 @@
 
 import React from "react";
-import { MicIcon, Volume2, Cog } from "lucide-react";
+import { Mic, MicOff, Volume2, Cog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ActionButtonsProps {
@@ -32,8 +32,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
           isListening ? "bg-red-100 border-red-300 text-red-600" : ""
         }`}
       >
-        <MicIcon size={16} className={`mr-1.5 ${isListening ? "animate-pulse text-red-600" : ""}`} /> 
-        {isListening ? "停止输入" : "语音输入"}
+        {isListening ? (
+          <MicOff size={16} className="mr-1.5 animate-pulse text-red-600" />
+        ) : (
+          <Mic size={16} className="mr-1.5" />
+        )}
+        {isListening ? "停止输入" : "持续语音输入"}
       </Button>
       
       <Button

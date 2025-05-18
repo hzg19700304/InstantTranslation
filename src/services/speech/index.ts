@@ -17,17 +17,32 @@ export const startVoiceInput = (
   const recognition = new SpeechRecognition();
 
   // 设置识别参数
-  recognition.continuous = false;
-  recognition.interimResults = false;
+  recognition.continuous = true; // 设置为持续识别模式
+  recognition.interimResults = true; // 启用临时结果，获取实时反馈
   recognition.lang = language; // 设置为传入的语言代码
+
+  let finalTranscript = '';
 
   // 识别结果处理
   recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    onResult(transcript);
+    let interimTranscript = '';
+    
+    // 遍历所有识别结果
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      
+      if (event.results[i].isFinal) {
+        finalTranscript += transcript + ' ';
+        onResult(finalTranscript.trim());
+      } else {
+        interimTranscript += transcript;
+      }
+    }
   };
 
   recognition.onend = () => {
+    // 在持续模式下，如果识别停止（例如由于暂停），自动重新开始
+    // 除非通过返回的停止函数明确停止
     onEnd();
   };
 

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { startVoiceInput, speakText } from "@/services/speech";
 
@@ -22,18 +22,26 @@ export const useSpeechFeatures = ({
 }: UseSpeechFeaturesProps) => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const stopListeningRef = useRef<(() => void) | null>(null);
 
   // 实现语音输入功能
   const handleVoiceInput = useCallback(() => {
     if (isListening) {
-      toast.info("正在停止语音输入", {
-        description: "语音输入已取消"
+      // 停止当前的语音识别
+      if (stopListeningRef.current) {
+        stopListeningRef.current();
+        stopListeningRef.current = null;
+      }
+      
+      setIsListening(false);
+      toast.info("语音输入已停止", {
+        description: "持续聆听模式已关闭"
       });
       return;
     }
     
-    toast.info("语音输入", {
-      description: `请开始说话，使用${sourceLanguageName}...`
+    toast.info("开始持续语音输入", {
+      description: `请开始说话，使用${sourceLanguageName}...您可以连续讲话，完成后请点击停止按钮`
     });
     
     setIsListening(true);
@@ -43,27 +51,20 @@ export const useSpeechFeatures = ({
       sourceLanguageCode,
       (text) => {
         setSourceText(text);
-        toast.success("语音识别完成", {
-          description: `已识别: "${text.substring(0, 20)}${text.length > 20 ? '...' : ''}"`
-        });
       },
       () => {
-        setIsListening(false);
+        // 持续模式下不会自动停止
+        // 只有当用户点击停止时才会触发
       }
     );
     
-    // 10秒后自动停止，避免长时间监听
-    const timeout = setTimeout(() => {
-      stopListening();
-      setIsListening(false);
-      toast.info("语音输入超时", {
-        description: "已自动停止语音输入"
-      });
-    }, 10000);
+    stopListeningRef.current = stopListening;
     
     return () => {
-      clearTimeout(timeout);
-      stopListening();
+      if (stopListeningRef.current) {
+        stopListeningRef.current();
+        stopListeningRef.current = null;
+      }
     };
   }, [sourceLanguageCode, sourceLanguageName, isListening, setSourceText]);
 
@@ -111,6 +112,9 @@ export const useSpeechFeatures = ({
   // 组件卸载时停止所有语音活动
   useEffect(() => {
     return () => {
+      if (stopListeningRef.current) {
+        stopListeningRef.current();
+      }
       window.speechSynthesis?.cancel();
     };
   }, []);
