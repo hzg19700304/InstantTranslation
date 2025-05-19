@@ -117,8 +117,13 @@ export const useTranslationLogic = ({
         
         // 确认当前源文本没有变化，然后再更新翻译结果
         if (currentSourceTextRef.current === sourceText) {
+          // 保存完整的翻译结果
           completeTranslationRef.current = translationResult;
+          
+          // 如果是增量翻译，则更新 previousTranslationResultRef 为新的完整翻译
           previousTranslationResultRef.current = translationResult;
+          
+          // 设置翻译文本，显示给用户
           setTranslatedText(translationResult);
           
           // 更新最后翻译的文本引用
@@ -180,3 +185,4 @@ export const useTranslationLogic = ({
 
   return { handleRetryTranslation };
 };
+
