@@ -9,8 +9,21 @@ const config: CapacitorConfig = {
     url: "https://4ecdefce-e679-4f52-95f8-34e52426df93.lovableproject.com?forceHideBadge=true",
     cleartext: true
   },
+  android: {
+    buildOptions: {
+      keystorePath: undefined,
+      keystorePassword: undefined,
+      keystoreAlias: undefined,
+      keystoreAliasPassword: undefined,
+      signingType: undefined,
+      releaseType: undefined,
+    }
+  },
   plugins: {
-    // 可以在这里配置插件
+    SplashScreen: {
+      launchShowDuration: 0,
+      backgroundColor: "#FFFFFF"
+    }
   }
 };
 
