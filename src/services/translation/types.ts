@@ -8,4 +8,5 @@ export interface LibreTranslateResponse {
 }
 
 // LLM Provider Types
-export type LLMProvider = 'huggingface' | 'deepseek' | 'gemini';
+export type LLMProvider = 'huggingface' | 'deepseek' | 'gemini' | 'chatgpt';
+

@@ -3,9 +3,11 @@
 import { translateWithHuggingFace } from './providers/huggingface';
 import { translateWithDeepSeek } from './providers/deepseek';
 import { translateWithGemini } from './providers/gemini';
+import { translateWithChatGPT } from './providers/chatgpt';
 import { testHuggingFaceConnection } from './providers/huggingface';
 import { testDeepSeekConnection } from './providers/deepseek';
 import { testGeminiConnection } from './providers/gemini';
+import { testChatGPTConnection } from './providers/chatgpt';
 import { LLMProvider } from './types';
 
 /**
@@ -25,6 +27,8 @@ export const translateWithLLM = async (
       return await translateWithDeepSeek(text, sourceLanguage, targetLanguage, llmApiKey);
     case 'gemini':
       return await translateWithGemini(text, sourceLanguage, targetLanguage, llmApiKey);
+    case 'chatgpt':
+      return await translateWithChatGPT(text, sourceLanguage, targetLanguage, llmApiKey);
     default:
       throw new Error(`不支持的LLM提供者: ${provider}`);
   }
@@ -44,6 +48,8 @@ export const testLLMConnection = async (
       return await testDeepSeekConnection(apiKey);
     case 'gemini':
       return await testGeminiConnection(apiKey);
+    case 'chatgpt':
+      return await testChatGPTConnection(apiKey);
     default:
       throw new Error(`不支持的LLM提供者: ${provider}`);
   }
@@ -60,7 +66,10 @@ export const getLLMDisplayName = (provider: string): string => {
       return 'DeepSeek Chat';
     case 'gemini':
       return 'Google Gemini';
+    case 'chatgpt':
+      return 'ChatGPT';
     default:
       return provider || '未知模型';
   }
 };
+

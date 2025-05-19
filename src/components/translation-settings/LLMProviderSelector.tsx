@@ -45,6 +45,9 @@ export const LLMProviderSelector: React.FC<LLMProviderSelectorProps> = ({
             <DropdownMenuItem onClick={() => setCurrentLLM("gemini")}>
               Google Gemini
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setCurrentLLM("chatgpt")}>
+              ChatGPT
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
           </DropdownMenuContent>
         </DropdownMenu>
@@ -52,3 +55,4 @@ export const LLMProviderSelector: React.FC<LLMProviderSelectorProps> = ({
     </div>
   );
 };
+

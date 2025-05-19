@@ -9,3 +9,5 @@ export * from './utils';
 export * from './providers/huggingface';
 export * from './providers/deepseek';
 export * from './providers/gemini';
+export * from './providers/chatgpt';
+
