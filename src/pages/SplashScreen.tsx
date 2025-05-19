@@ -2,18 +2,22 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { SplashScreen as CapSplashScreen } from '@capacitor/splash-screen';
 
 const SplashScreen = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
     // 确保在启动页面加载完成后再隐藏系统启动画面
-    try {
-      CapSplashScreen.hide();
-    } catch (error) {
-      console.log('Hide splash screen error:', error);
-    }
+    const hideSplashScreen = async () => {
+      try {
+        const { SplashScreen } = await import('@capacitor/splash-screen');
+        await SplashScreen.hide();
+      } catch (error) {
+        console.log('Hide splash screen error:', error);
+      }
+    };
+    
+    hideSplashScreen();
     
     // 3秒后自动导航到主页
     const timer = setTimeout(() => {

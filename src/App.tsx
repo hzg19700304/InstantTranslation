@@ -9,7 +9,6 @@ import NotFound from "./pages/NotFound";
 import SplashScreen from "./pages/SplashScreen";
 import { useMobilePlatform } from "./hooks/use-mobile-platform";
 import { useEffect } from "react";
-import { App as CapacitorApp } from '@capacitor/app';
 
 // 创建查询客户端实例
 const queryClient = new QueryClient({
@@ -27,17 +26,22 @@ const App = () => {
   // 为移动设备添加后退按钮处理
   useEffect(() => {
     if (isNative) {
-      const backButtonHandler = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
-        if (!canGoBack) {
-          CapacitorApp.exitApp();
-        } else {
-          window.history.back();
-        }
+      // Dynamically import Capacitor App to prevent errors in web environments
+      import('@capacitor/app').then(({ App: CapacitorApp }) => {
+        const backButtonHandler = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+          if (!canGoBack) {
+            CapacitorApp.exitApp();
+          } else {
+            window.history.back();
+          }
+        });
+        
+        return () => {
+          backButtonHandler.remove();
+        };
+      }).catch(err => {
+        console.error('Failed to load Capacitor App:', err);
       });
-      
-      return () => {
-        backButtonHandler.remove();
-      };
     }
   }, [isNative]);
 
