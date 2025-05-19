@@ -14,7 +14,7 @@ export function useMobilePlatform() {
   React.useEffect(() => {
     // 检查是否在Capacitor环境中运行
     const checkPlatform = () => {
-      if (window.Capacitor) {
+      if (typeof window !== 'undefined' && window.Capacitor) {
         setIsNative(!!window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
         
         if (window.Capacitor.getPlatform) {
@@ -24,7 +24,14 @@ export function useMobilePlatform() {
       }
     };
 
-    checkPlatform();
+    // 添加错误处理以防止在静态部署时的问题
+    try {
+      checkPlatform();
+    } catch (err) {
+      console.log('Platform detection error:', err);
+      setPlatform('web');
+      setIsNative(false);
+    }
   }, []);
 
   return {
