@@ -26,22 +26,32 @@ const App = () => {
   // 为移动设备添加后退按钮处理
   useEffect(() => {
     if (isNative) {
-      // Dynamically import Capacitor App to prevent errors in web environments
-      import('@capacitor/app').then(({ App: CapacitorApp }) => {
-        const backButtonHandler = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
-          if (!canGoBack) {
-            CapacitorApp.exitApp();
-          } else {
-            window.history.back();
-          }
-        });
-        
-        return () => {
-          backButtonHandler.remove();
-        };
-      }).catch(err => {
-        console.error('Failed to load Capacitor App:', err);
-      });
+      // 使用动态导入而不是静态导入，以避免在网页环境中出错
+      const setupBackButton = async () => {
+        try {
+          const { App: CapacitorApp } = await import('@capacitor/app');
+          const backButtonHandler = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+            if (!canGoBack) {
+              CapacitorApp.exitApp();
+            } else {
+              window.history.back();
+            }
+          });
+          
+          return () => {
+            backButtonHandler.remove();
+          };
+        } catch (err) {
+          console.error('Failed to load Capacitor App:', err);
+          return () => {};
+        }
+      };
+      
+      // 执行设置
+      const cleanup = setupBackButton();
+      return () => {
+        cleanup.then(cleanupFn => cleanupFn());
+      };
     }
   }, [isNative]);
 
