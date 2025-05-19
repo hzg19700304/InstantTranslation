@@ -18,10 +18,14 @@ const config: CapacitorConfig = {
       signingType: undefined,
       releaseType: undefined,
     },
-    // 添加额外的Android特定配置
+    // Android特定配置
     allowMixedContent: true,
     captureInput: true,
-    webContentsDebuggingEnabled: true
+    webContentsDebuggingEnabled: true,
+    // 添加以下配置以确保应用全屏显示，适应小屏幕
+    backgroundColor: "#FFFFFF",
+    initialMargin: 0, // 移除边距
+    useLegacyBridge: false // 使用新的桥接方式提高性能
   },
   plugins: {
     SplashScreen: {

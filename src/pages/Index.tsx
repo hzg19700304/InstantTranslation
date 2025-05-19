@@ -4,6 +4,7 @@ import { LANGUAGES } from "@/constants/languages";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useSpeechFeatures } from "@/hooks/useSpeechFeatures";
 import { useTranslationSettings } from "@/hooks/useTranslationSettings";
+import { useMobilePlatform } from "@/hooks/use-mobile-platform";
 
 import TranslationLayout from "@/components/translation/TranslationLayout";
 import ApiKeyInputSection from "@/components/translation/ApiKeyInputSection";
@@ -12,7 +13,10 @@ import TranslationContent from "@/components/translation/TranslationContent";
 import ActionButtons from "@/components/translation/ActionButtons";
 
 const Index = () => {
-  // Initialize translation functionality
+  // 检测当前运行平台
+  const { isNative, isAndroid } = useMobilePlatform();
+
+  // 初始化翻译功能
   const {
     sourceText,
     setSourceText,
@@ -39,7 +43,7 @@ const Index = () => {
     initialTargetLanguage: LANGUAGES[0], // 中文
   });
 
-  // Initialize speech features
+  // 初始化语音功能
   const {
     isListening,
     isSpeaking,
@@ -55,7 +59,7 @@ const Index = () => {
     targetLanguageCode: targetLanguage.code
   });
 
-  // Initialize settings modal
+  // 初始化设置模态框
   const {
     isSettingsModalOpen,
     openSettingsModal,
@@ -73,6 +77,8 @@ const Index = () => {
       setCurrentLLM={setCurrentLLM}
       llmApiKey={llmApiKey}
       setLlmApiKey={setLlmApiKey}
+      isNative={isNative}
+      isAndroid={isAndroid}
     >
       {/* API密钥输入框 */}
       <ApiKeyInputSection
