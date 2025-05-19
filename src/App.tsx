@@ -30,7 +30,7 @@ const App = () => {
       const setupBackButton = async () => {
         try {
           const { App: CapacitorApp } = await import('@capacitor/app');
-          const backButtonHandler = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+          const backButtonHandlerPromise = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
             if (!canGoBack) {
               CapacitorApp.exitApp();
             } else {
@@ -38,7 +38,9 @@ const App = () => {
             }
           });
           
-          return () => {
+          // 先解析promise获取实际的handler，然后再返回cleanup函数
+          return async () => {
+            const backButtonHandler = await backButtonHandlerPromise;
             backButtonHandler.remove();
           };
         } catch (err) {
@@ -47,10 +49,11 @@ const App = () => {
         }
       };
       
-      // 执行设置
-      const cleanup = setupBackButton();
+      // 执行设置并存储cleanup函数
+      let cleanupPromise = setupBackButton();
       return () => {
-        cleanup.then(cleanupFn => cleanupFn());
+        // 确保在组件卸载时执行清理函数
+        cleanupPromise.then(cleanupFn => cleanupFn());
       };
     }
   }, [isNative]);
