@@ -19,6 +19,7 @@ interface UseTranslationLogicProps {
   currentLLM: LLMProvider;
   retryCount: number;
   setRetryCount: (value: number | ((prevCount: number) => number)) => void;
+  addToTranslationHistory: (sourceText: string, translatedText: string) => void;
   
   // 引用
   lastTranslatedTextRef: React.MutableRefObject<string>;
@@ -43,6 +44,7 @@ export const useTranslationLogic = ({
   currentLLM,
   retryCount,
   setRetryCount,
+  addToTranslationHistory,
   lastTranslatedTextRef,
   currentSourceTextRef,
   translationTimeoutRef,
@@ -126,6 +128,11 @@ export const useTranslationLogic = ({
           // 设置翻译文本，显示给用户
           setTranslatedText(translationResult);
           
+          // 添加到翻译历史记录（非增量翻译才添加）
+          if (!isIncremental || isFirstTranslationRef.current) {
+            addToTranslationHistory(sourceText, translationResult);
+          }
+          
           // 更新最后翻译的文本引用
           lastTranslatedTextRef.current = sourceText;
           isFirstTranslationRef.current = false;
@@ -152,7 +159,8 @@ export const useTranslationLogic = ({
     setIsTranslating, 
     setTranslatedText, 
     setTranslationError, 
-    processIncrementalTranslation
+    processIncrementalTranslation,
+    addToTranslationHistory
   ]);
   
   // 使用翻译计时器 - must follow performTranslation

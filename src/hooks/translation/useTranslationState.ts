@@ -2,6 +2,12 @@
 import { useState, useRef } from "react";
 import { Language } from "@/types/translation";
 
+export interface TranslationHistoryItem {
+  sourceText: string;
+  translatedText: string;
+  timestamp: Date;
+}
+
 interface UseTranslationStateProps {
   initialSourceLanguage: Language;
   initialTargetLanguage: Language;
@@ -20,6 +26,9 @@ export const useTranslationState = ({
   const [translationError, setTranslationError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   
+  // 添加翻译历史记录
+  const [translationHistory, setTranslationHistory] = useState<TranslationHistoryItem[]>([]);
+  
   // 翻译相关引用
   const lastTranslatedTextRef = useRef<string>("");
   const currentSourceTextRef = useRef<string>("");
@@ -28,6 +37,20 @@ export const useTranslationState = ({
   const previousTranslationResultRef = useRef<string>("");
   const completeTranslationRef = useRef<string>("");
   const isFirstTranslationRef = useRef<boolean>(true);
+
+  // 添加一个新的翻译结果到历史记录
+  const addToTranslationHistory = (sourceText: string, translatedText: string) => {
+    if (sourceText && translatedText && translatedText !== "[翻译失败]") {
+      setTranslationHistory(prev => [
+        {
+          sourceText,
+          translatedText,
+          timestamp: new Date()
+        },
+        ...prev.slice(0, 9) // 只保留最近的10条记录
+      ]);
+    }
+  };
 
   return {
     // 状态
@@ -45,6 +68,10 @@ export const useTranslationState = ({
     setTranslationError,
     retryCount,
     setRetryCount,
+    
+    // 翻译历史
+    translationHistory,
+    addToTranslationHistory,
     
     // 引用
     lastTranslatedTextRef,

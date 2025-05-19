@@ -4,6 +4,13 @@ import { ArrowDown, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TranslationCard from "@/components/TranslationCard";
 import { Language } from "@/types/translation";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface TranslationHistoryItem {
+  sourceText: string;
+  translatedText: string;
+  timestamp: Date;
+}
 
 interface TranslationContentProps {
   sourceLanguage: Language;
@@ -14,6 +21,7 @@ interface TranslationContentProps {
   translationError: string;
   setSourceText: (text: string) => void;
   handleRetryTranslation: () => void;
+  translationHistory?: TranslationHistoryItem[];
 }
 
 const TranslationContent: React.FC<TranslationContentProps> = ({
@@ -25,6 +33,7 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
   translationError,
   setSourceText,
   handleRetryTranslation,
+  translationHistory = [],
 }) => {
   return (
     <div className="space-y-4">
@@ -46,6 +55,23 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
         value={translatedText}
         className={isTranslating ? "opacity-70" : ""}
       />
+      
+      {/* 翻译历史记录 */}
+      {translationHistory.length > 0 && (
+        <ScrollArea className="h-40 rounded-md border border-translator-primary/10 bg-white p-2">
+          <div className="space-y-2">
+            {translationHistory.map((item, index) => (
+              <div key={index} className="rounded-md bg-translator-secondary/30 p-2 text-sm">
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <span>{new Date(item.timestamp).toLocaleTimeString()}</span>
+                </div>
+                <div className="mb-1 text-gray-700">{item.sourceText}</div>
+                <div className="font-medium text-translator-primary">{item.translatedText}</div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      )}
       
       {/* 翻译错误提示和重试按钮 */}
       {translationError && (

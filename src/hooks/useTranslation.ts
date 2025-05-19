@@ -1,5 +1,5 @@
 
-import { useTranslationState } from "./translation/useTranslationState";
+import { useTranslationState, TranslationHistoryItem } from "./translation/useTranslationState";
 import { useLLMSettings } from "./translation/useLLMSettings";
 import { useLanguageSwap } from "./translation/useLanguageSwap";
 import { useTranslationLogic } from "./translation/useTranslationLogic";
@@ -46,6 +46,7 @@ export const useTranslation = ({
     currentLLM: llmSettings.currentLLM,
     retryCount: state.retryCount,
     setRetryCount: state.setRetryCount,
+    addToTranslationHistory: state.addToTranslationHistory,
     
     // 引用
     lastTranslatedTextRef: state.lastTranslatedTextRef,
@@ -69,6 +70,9 @@ export const useTranslation = ({
     setTargetLanguage: state.setTargetLanguage,
     isTranslating: state.isTranslating,
     translationError: state.translationError,
+    
+    // 翻译历史
+    translationHistory: state.translationHistory,
     
     // LLM 设置导出
     useLLM: llmSettings.useLLM,
