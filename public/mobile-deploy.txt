@@ -1,0 +1,82 @@
+
+# 将即时翻译应用部署到移动设备的说明
+
+## 准备工作
+
+### 所需工具
+- Git命令行工具
+- Node.js和npm
+- 用于iOS开发：Mac电脑和Xcode
+- 用于Android开发：Android Studio和Java开发环境
+
+## 部署步骤
+
+### 1. 获取项目代码
+1. 使用"Export to Github"按钮将项目导出到您的GitHub仓库
+2. 在本地计算机上克隆该仓库：`git clone [仓库URL]`
+3. 进入项目目录：`cd [项目目录]`
+4. 安装依赖：`npm install`
+
+### 2. 准备移动平台
+
+#### Android准备
+```bash
+npx cap add android
+```
+
+#### iOS准备（仅限Mac）
+```bash
+npx cap add ios
+```
+
+### 3. 构建Web应用
+```bash
+npm run build
+```
+
+### 4. 同步到原生平台
+```bash
+npx cap sync
+```
+
+### 5. 运行应用
+
+#### 在Android上运行
+```bash
+npx cap open android
+```
+然后在Android Studio中点击"Run"按钮
+
+#### 在iOS上运行（仅限Mac）
+```bash
+npx cap open ios
+```
+然后在Xcode中点击"Run"按钮
+
+## 生成可安装的应用
+
+### 生成Android APK
+1. 在Android Studio中，选择Build > Build Bundle(s) / APK(s) > Build APK(s)
+2. APK文件将保存在`[项目目录]/android/app/build/outputs/apk/debug/`中
+
+### 生成iOS IPA（需要开发者账号）
+1. 在Xcode中，配置您的证书和配置文件
+2. 选择Product > Archive
+3. 在弹出的Organizer窗口中，点击"Distribute App"
+
+## 常见问题
+
+### Android构建问题
+- 中国大陆地区可能需要配置国内镜像。项目已包含了阿里云Maven镜像配置脚本，可运行：
+  ```
+  node scripts/add-maven-mirror.js
+  ```
+
+### iOS构建问题
+- 确保您有有效的Apple开发者账号
+- 检查项目Bundle Identifier是否与您的开发者账号匹配
+
+### 应用功能问题
+- 确保设备有正常的网络连接
+- 检查是否已授权应用必要的权限（如麦克风权限）
+
