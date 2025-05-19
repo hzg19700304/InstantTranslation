@@ -6,7 +6,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: "./", // 添加此行，使用相对路径
+  base: "./", // Use relative paths for assets
   server: {
     host: "::",
     port: 8080,
