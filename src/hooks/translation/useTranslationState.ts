@@ -51,6 +51,18 @@ export const useTranslationState = ({
       ]);
     }
   };
+  
+  // 添加清空翻译功能
+  const clearTranslation = () => {
+    setSourceText("");
+    setTranslatedText("");
+    setTranslationError("");
+    lastTranslatedTextRef.current = "";
+    currentSourceTextRef.current = "";
+    previousTranslationResultRef.current = "";
+    completeTranslationRef.current = "";
+    isFirstTranslationRef.current = true;
+  };
 
   return {
     // 状态
@@ -72,6 +84,9 @@ export const useTranslationState = ({
     // 翻译历史
     translationHistory,
     addToTranslationHistory,
+    
+    // 清空翻译
+    clearTranslation,
     
     // 引用
     lastTranslatedTextRef,

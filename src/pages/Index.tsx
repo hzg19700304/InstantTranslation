@@ -36,6 +36,7 @@ const Index = () => {
     setCurrentLLM,
     translationError,
     translationHistory,
+    clearTranslation,
     handleSwapLanguages,
     handleRetryTranslation,
     saveApiKey
@@ -114,6 +115,7 @@ const Index = () => {
         setSourceText={setSourceText}
         handleRetryTranslation={handleRetryTranslation}
         translationHistory={translationHistory}
+        handleClearTranslation={clearTranslation}
       />
 
       {/* 功能按钮 */}

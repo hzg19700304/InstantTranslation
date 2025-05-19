@@ -1,6 +1,6 @@
 
 import React from "react";
-import { ArrowDown, Repeat } from "lucide-react";
+import { ArrowDown, Repeat, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TranslationCard from "@/components/TranslationCard";
 import { Language } from "@/types/translation";
@@ -22,6 +22,7 @@ interface TranslationContentProps {
   setSourceText: (text: string) => void;
   handleRetryTranslation: () => void;
   translationHistory?: TranslationHistoryItem[];
+  handleClearTranslation?: () => void;
 }
 
 const TranslationContent: React.FC<TranslationContentProps> = ({
@@ -34,6 +35,7 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
   setSourceText,
   handleRetryTranslation,
   translationHistory = [],
+  handleClearTranslation,
 }) => {
   return (
     <div className="space-y-4">
@@ -67,6 +69,20 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
             className="border-translator-primary/20 hover:bg-translator-secondary"
           >
             <Repeat size={14} className="mr-1.5"/> 重试翻译
+          </Button>
+        </div>
+      )}
+      
+      {/* 清空翻译按钮 */}
+      {(sourceText || translatedText) && (
+        <div className="flex justify-end mt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearTranslation}
+            className="border-translator-primary/20 hover:bg-translator-secondary"
+          >
+            <Trash2 size={14} className="mr-1.5"/> 清空翻译
           </Button>
         </div>
       )}

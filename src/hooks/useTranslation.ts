@@ -74,6 +74,9 @@ export const useTranslation = ({
     // 翻译历史
     translationHistory: state.translationHistory,
     
+    // 清空翻译
+    clearTranslation: state.clearTranslation,
+    
     // LLM 设置导出
     useLLM: llmSettings.useLLM,
     setUseLLM: llmSettings.setUseLLM,
