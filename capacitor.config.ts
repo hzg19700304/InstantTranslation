@@ -17,7 +17,11 @@ const config: CapacitorConfig = {
       keystoreAliasPassword: undefined,
       signingType: undefined,
       releaseType: undefined,
-    }
+    },
+    // 添加额外的Android特定配置
+    allowMixedContent: true,
+    captureInput: true,
+    webContentsDebuggingEnabled: true
   },
   plugins: {
     SplashScreen: {

@@ -20,6 +20,9 @@ try {
         maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }`
     );
     
+    // 删除所有flatDir仓库配置
+    content = content.replace(/flatDir\s*{[^}]*}/g, '');
+    
     fs.writeFileSync(projectBuildGradlePath, content);
     console.log('成功添加阿里云Maven镜像到项目build.gradle文件');
   } else {
@@ -50,6 +53,17 @@ pluginManagement {
         mavenCentral()
     }
 }
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        // 阿里云Maven镜像
+        maven { url 'https://maven.aliyun.com/repository/public/' }
+        maven { url 'https://maven.aliyun.com/repository/google/' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
+        google()
+        mavenCentral()
+    }
+}
 `;
     
     // 如果文件已经包含pluginManagement，我们需要替换它而不是添加
@@ -58,6 +72,9 @@ pluginManagement {
     } else {
       content = mirrorConfig + content;
     }
+    
+    // 删除所有flatDir仓库配置
+    content = content.replace(/flatDir\s*{[^}]*}/g, '');
     
     fs.writeFileSync(settingsGradlePath, content);
     console.log('成功添加阿里云Maven镜像到settings.gradle文件');
@@ -80,10 +97,12 @@ try {
 org.gradle.daemon=true
 org.gradle.parallel=true
 org.gradle.configureondemand=true
-org.gradle.jvmargs=-Xmx3072m -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8
+org.gradle.jvmargs=-Xmx4096m -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8
 android.useAndroidX=true
 android.enableJetifier=true
-android.enableR8=true`;
+android.enableR8=true
+# 禁用版本目录
+android.disableAutomaticComponentCreation=true`;
   
   // 检查是否已经添加了这些设置
   let needToAddSettings = false;
@@ -111,4 +130,23 @@ android.enableR8=true`;
   console.error('修改gradle.properties文件时出错:', error);
 }
 
+// 检查是否需要修改应用级build.gradle文件
+const appBuildGradlePath = path.join(__dirname, '../android/app/build.gradle');
+
+try {
+  if (fs.existsSync(appBuildGradlePath)) {
+    let content = fs.readFileSync(appBuildGradlePath, 'utf8');
+    
+    // 删除所有flatDir仓库配置
+    if (content.includes('flatDir')) {
+      content = content.replace(/flatDir\s*{[^}]*}/g, '');
+      fs.writeFileSync(appBuildGradlePath, content);
+      console.log('从应用级build.gradle文件中移除了flatDir配置');
+    }
+  }
+} catch (error) {
+  console.error('修改应用级build.gradle文件时出错:', error);
+}
+
 console.log('阿里云Maven镜像配置完成！请重新同步你的Android项目。');
+console.log('提示：如有本地JAR/AAR依赖，建议将它们上传到本地或远程Maven仓库，而不是使用flatDir。');
