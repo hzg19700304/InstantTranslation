@@ -120,7 +120,7 @@ export const useTranslationLogic = ({
           // 保存完整的翻译结果
           completeTranslationRef.current = translationResult;
           
-          // 如果是增量翻译，则更新 previousTranslationResultRef 为新的完整翻译
+          // 如果是增量翻译，则确保更新 previousTranslationResultRef 为新的完整翻译
           previousTranslationResultRef.current = translationResult;
           
           // 设置翻译文本，显示给用户
@@ -185,4 +185,3 @@ export const useTranslationLogic = ({
 
   return { handleRetryTranslation };
 };
-

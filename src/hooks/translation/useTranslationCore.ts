@@ -93,7 +93,7 @@ export const useTranslationCore = ({
     }
     
     if (isIncremental && completeTranslation) {
-      // 对于增量翻译，追加新的翻译结果到之前的完整翻译
+      // 对于增量翻译，确保我们是真正地追加新的结果到之前的完整翻译
       return `${completeTranslation} ${result}`.trim();
     } else {
       // 对于全新翻译
@@ -106,4 +106,3 @@ export const useTranslationCore = ({
     processIncrementalTranslation
   };
 };
-
