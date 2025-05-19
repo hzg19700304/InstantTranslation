@@ -56,23 +56,6 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
         className={isTranslating ? "opacity-70" : ""}
       />
       
-      {/* 翻译历史记录 */}
-      {translationHistory.length > 0 && (
-        <ScrollArea className="h-40 rounded-md border border-translator-primary/10 bg-white p-2">
-          <div className="space-y-2">
-            {translationHistory.map((item, index) => (
-              <div key={index} className="rounded-md bg-translator-secondary/30 p-2 text-sm">
-                <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                  <span>{new Date(item.timestamp).toLocaleTimeString()}</span>
-                </div>
-                <div className="mb-1 text-gray-700">{item.sourceText}</div>
-                <div className="font-medium text-translator-primary">{item.translatedText}</div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      )}
-      
       {/* 翻译错误提示和重试按钮 */}
       {translationError && (
         <div className="mt-2 text-center">
