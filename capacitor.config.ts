@@ -10,14 +10,6 @@ const config: CapacitorConfig = {
     cleartext: true
   },
   android: {
-    buildOptions: {
-      keystorePath: undefined,
-      keystorePassword: undefined,
-      keystoreAlias: undefined,
-      keystoreAliasPassword: undefined,
-      signingType: undefined,
-      releaseType: undefined,
-    },
     // Android特定配置
     allowMixedContent: true,
     captureInput: true,
@@ -31,7 +23,7 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      launchShowDuration: 3000,
       launchAutoHide: true,
       backgroundColor: "#FFFFFF",
       androidSplashResourceName: "splash",
