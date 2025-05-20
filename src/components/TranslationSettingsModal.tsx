@@ -230,7 +230,7 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
                 </div>
               </RadioGroup>
               
-              {currentSpeechModel && currentSpeechModel !== "webspeech" && (
+              {(currentSpeechModel === "whisper" || currentSpeechModel === "gpt4o" || currentSpeechModel === "gpt4omini") && (
                 <div className="grid grid-cols-[1fr,auto] gap-2 items-end">
                   <div>
                     <Label htmlFor="speechApiKey" className="text-sm mb-1 block">
