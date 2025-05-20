@@ -2,7 +2,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { startVoiceInput, speakText } from "@/services/speech";
+import { startModelVoiceInput } from "@/services/speech/modelSpeech";
 import { useMobilePlatform } from "@/hooks/use-mobile-platform";
+import { SpeechModel } from "@/components/speech/VoiceModelSelector";
 
 interface UseSpeechFeaturesProps {
   sourceText: string;
@@ -11,6 +13,8 @@ interface UseSpeechFeaturesProps {
   sourceLanguageCode: string;
   sourceLanguageName: string;
   targetLanguageCode: string;
+  currentSpeechModel?: SpeechModel;
+  speechApiKey?: string;
 }
 
 export const useSpeechFeatures = ({ 
@@ -19,7 +23,9 @@ export const useSpeechFeatures = ({
   translatedText,
   sourceLanguageCode,
   sourceLanguageName,
-  targetLanguageCode
+  targetLanguageCode,
+  currentSpeechModel = "webspeech",
+  speechApiKey = ""
 }: UseSpeechFeaturesProps) => {
   // 所有状态声明必须在前面
   const [isListening, setIsListening] = useState(false);
@@ -40,18 +46,37 @@ export const useSpeechFeatures = ({
     const hasRecognition = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
     const hasSynthesis = !!(window.speechSynthesis);
     
-    setSpeechSupported(hasRecognition && hasSynthesis);
+    // 如果是使用模型进行语音识别，则只需要检查MediaDevices API是否可用
+    const isUsingModel = currentSpeechModel !== "webspeech";
+    const hasMediaDevices = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     
-    if (!hasRecognition || !hasSynthesis) {
-      console.warn("语音功能在当前设备上不完全支持");
+    if (isUsingModel) {
+      // 当使用模型时，检查是否有API密钥和媒体设备访问权限
+      const hasApiKey = !!speechApiKey;
+      setSpeechSupported(hasMediaDevices && hasApiKey && hasSynthesis);
+      
+      if (!hasMediaDevices) {
+        console.warn("媒体设备API在当前设备上不可用");
+      }
+      
+      if (!hasApiKey) {
+        console.warn("未提供API密钥，无法使用语音模型");
+      }
+    } else {
+      // 使用Web Speech API时，检查语音识别和合成API是否可用
+      setSpeechSupported(hasRecognition && hasSynthesis);
+      
+      if (!hasRecognition || !hasSynthesis) {
+        console.warn("语音功能在当前设备上不完全支持");
+      }
     }
-  }, []);
+  }, [currentSpeechModel, speechApiKey]);
 
   // 语音输入处理
   const handleVoiceInput = useCallback(() => {
     if (!speechSupported) {
       toast.error("语音识别不可用", {
-        description: "您的设备不支持语音识别功能"
+        description: "请检查您的设备支持和API密钥设置"
       });
       return;
     }
@@ -73,7 +98,7 @@ export const useSpeechFeatures = ({
       return;
     }
     
-    // 在移动设备上可能需要请求权限
+    // 请求麦克风权限
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(() => {
@@ -89,7 +114,7 @@ export const useSpeechFeatures = ({
       // 尝试直接启动，某些浏览器会自动请求权限
       startVoiceRecognition();
     }
-  }, [sourceLanguageCode, sourceLanguageName, isListening, setSourceText, sourceText, speechSupported]);
+  }, [sourceLanguageCode, sourceLanguageName, isListening, setSourceText, sourceText, speechSupported, currentSpeechModel, speechApiKey]);
 
   // 实际启动语音识别的函数
   const startVoiceRecognition = useCallback(() => {
@@ -103,46 +128,76 @@ export const useSpeechFeatures = ({
     baseTextRef.current = sourceText;
     currentVoiceSessionTextRef.current = sourceText;
     
-    // 开始语音识别，处理临时和最终结果
-    const stopListening = startVoiceInput(
-      sourceLanguageCode,
-      (text, isFinal) => {
-        if (isFinal) {
-          // 处理最终结果 - 将新识别的文本追加到已有文本
-          const newText = currentVoiceSessionTextRef.current 
-            ? `${currentVoiceSessionTextRef.current} ${text}`.trim() 
-            : text;
-          
-          setSourceText(newText);
-          currentVoiceSessionTextRef.current = newText;
-          lastInterimResultRef.current = "";
-        } else {
-          // 处理临时结果，显示在输入框中但不影响已有文本
-          // 移除上一个临时结果，添加新的临时结果
-          let displayText = currentVoiceSessionTextRef.current || "";
-          if (lastInterimResultRef.current) {
-            // 如果存在上一个临时结果，先移除它
-            displayText = displayText.replace(new RegExp(`${lastInterimResultRef.current.trim()}$`), "").trim();
-          }
-          
-          // 添加新的临时结果
-          displayText = `${displayText} ${text}`.trim();
-          setSourceText(displayText);
-          lastInterimResultRef.current = text;
+    // 处理临时和最终结果的回调函数
+    const handleResult = (text: string, isFinal: boolean) => {
+      if (isFinal) {
+        // 处理最终结果 - 将新识别的文本追加到已有文本
+        const newText = currentVoiceSessionTextRef.current 
+          ? `${currentVoiceSessionTextRef.current} ${text}`.trim() 
+          : text;
+        
+        setSourceText(newText);
+        currentVoiceSessionTextRef.current = newText;
+        lastInterimResultRef.current = "";
+      } else {
+        // 处理临时结果，显示在输入框中但不影响已有文本
+        // 移除上一个临时结果，添加新的临时结果
+        let displayText = currentVoiceSessionTextRef.current || "";
+        if (lastInterimResultRef.current) {
+          // 如果存在上一个临时结果，先移除它
+          displayText = displayText.replace(new RegExp(`${lastInterimResultRef.current.trim()}$`), "").trim();
         }
-      },
-      () => {
-        // 语音识别结束
-        setIsListening(false);
-        stopListeningRef.current = null;
-        toast.info("语音识别已结束", {
-          description: "语音输入已自动停止"
-        });
+        
+        // 添加新的临时结果
+        displayText = `${displayText} ${text}`.trim();
+        setSourceText(displayText);
+        lastInterimResultRef.current = text;
       }
-    );
+    };
+    
+    // 根据当前选择的模型启动语音识别
+    let stopListening: () => void;
+    
+    if (currentSpeechModel === "webspeech") {
+      // 使用Web Speech API
+      stopListening = startVoiceInput(
+        sourceLanguageCode,
+        handleResult,
+        () => {
+          // 语音识别结束
+          setIsListening(false);
+          stopListeningRef.current = null;
+          toast.info("语音识别已结束", {
+            description: "语音输入已自动停止"
+          });
+        }
+      );
+    } else {
+      // 使用外部模型API
+      startModelVoiceInput(
+        currentSpeechModel,
+        speechApiKey || "",
+        sourceLanguageCode,
+        handleResult,
+        () => {
+          // 语音识别结束
+          setIsListening(false);
+          stopListeningRef.current = null;
+          toast.info("语音识别已结束", {
+            description: "语音输入已自动停止"
+          });
+        }
+      ).then(stopFunc => {
+        stopListening = stopFunc;
+        stopListeningRef.current = stopFunc;
+      });
+      
+      // 暂时占位函数，真正的停止函数将通过Promise设置
+      stopListening = () => {};
+    }
     
     stopListeningRef.current = stopListening;
-  }, [sourceLanguageCode, sourceLanguageName, setSourceText, sourceText]);
+  }, [sourceLanguageCode, sourceLanguageName, setSourceText, sourceText, currentSpeechModel, speechApiKey]);
 
   // 文本朗读功能
   const handleTextToSpeech = useCallback(() => {

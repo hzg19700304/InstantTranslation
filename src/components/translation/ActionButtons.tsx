@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Mic, MicOff, Volume2, Settings } from "lucide-react";
+import { Mic, MicOff, Volume2, Settings, Speech } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ActionButtonsProps {
@@ -12,6 +12,7 @@ interface ActionButtonsProps {
   handleTextToSpeech: () => void;
   openSettingsModal: () => void;
   speechSupported?: boolean;
+  openVoiceModelSelector?: () => void;
 }
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({
@@ -22,10 +23,11 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   handleVoiceInput,
   handleTextToSpeech,
   openSettingsModal,
-  speechSupported = true
+  speechSupported = true,
+  openVoiceModelSelector
 }) => {
   return (
-    <div className="flex justify-center gap-3 mt-6">
+    <div className="flex justify-center gap-3 mt-6 flex-wrap">
       <Button
         variant="outline"
         size="sm"
@@ -42,6 +44,18 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         )}
         {isListening ? "停止输入" : "持续语音输入"}
       </Button>
+      
+      {openVoiceModelSelector && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={openVoiceModelSelector}
+          className="border-translator-primary/20 hover:bg-translator-secondary transition-colors"
+        >
+          <Speech size={16} className="mr-1.5" />
+          选择语音模型
+        </Button>
+      )}
       
       <Button
         variant="outline"

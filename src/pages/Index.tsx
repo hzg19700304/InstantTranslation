@@ -5,6 +5,8 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useSpeechFeatures } from "@/hooks/useSpeechFeatures";
 import { useTranslationSettings } from "@/hooks/useTranslationSettings";
 import { useMobilePlatform } from "@/hooks/use-mobile-platform";
+import { useVoiceModel } from "@/hooks/useVoiceModel";
+import { VoiceModelSelector } from "@/components/speech/VoiceModelSelector";
 
 import TranslationLayout from "@/components/translation/TranslationLayout";
 import ApiKeyInputSection from "@/components/translation/ApiKeyInputSection";
@@ -45,6 +47,17 @@ const Index = () => {
     initialTargetLanguage: LANGUAGES[0], // 中文
   });
 
+  // 初始化语音模型选择器
+  const {
+    isVoiceModelSelectorOpen,
+    openVoiceModelSelector,
+    closeVoiceModelSelector,
+    currentSpeechModel,
+    setCurrentSpeechModel,
+    speechApiKey,
+    setSpeechApiKey
+  } = useVoiceModel();
+
   // 初始化语音功能
   const {
     isListening,
@@ -58,7 +71,9 @@ const Index = () => {
     translatedText,
     sourceLanguageCode: sourceLanguage.code,
     sourceLanguageName: sourceLanguage.name,
-    targetLanguageCode: targetLanguage.code
+    targetLanguageCode: targetLanguage.code,
+    currentSpeechModel,
+    speechApiKey
   });
 
   // 初始化设置模态框
@@ -128,6 +143,17 @@ const Index = () => {
         handleTextToSpeech={handleTextToSpeech}
         openSettingsModal={openSettingsModal}
         speechSupported={speechSupported}
+        openVoiceModelSelector={openVoiceModelSelector}
+      />
+
+      {/* 语音模型选择器对话框 */}
+      <VoiceModelSelector
+        isOpen={isVoiceModelSelectorOpen}
+        onClose={closeVoiceModelSelector}
+        currentModel={currentSpeechModel}
+        setCurrentModel={setCurrentSpeechModel}
+        apiKey={speechApiKey}
+        setApiKey={setSpeechApiKey}
       />
     </TranslationLayout>
   );
