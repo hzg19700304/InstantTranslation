@@ -5,9 +5,6 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useSpeechFeatures } from "@/hooks/useSpeechFeatures";
 import { useTranslationSettings } from "@/hooks/useTranslationSettings";
 import { useMobilePlatform } from "@/hooks/use-mobile-platform";
-import { useVoiceModel } from "@/hooks/useVoiceModel";
-import { VoiceModelSelector } from "@/components/speech/VoiceModelSelector";
-
 import TranslationLayout from "@/components/translation/TranslationLayout";
 import ApiKeyInputSection from "@/components/translation/ApiKeyInputSection";
 import LanguageSelectionSection from "@/components/translation/LanguageSelectionSection";
@@ -17,6 +14,24 @@ import ActionButtons from "@/components/translation/ActionButtons";
 const Index = () => {
   // 检测当前运行平台
   const { isNative, isAndroid } = useMobilePlatform();
+
+  // 初始化翻译设置
+  const {
+    isSettingsModalOpen,
+    openSettingsModal,
+    closeSettingsModal,
+    llmApiKey,
+    setLlmApiKey,
+    showApiKeyInput,
+    setShowApiKeyInput,
+    currentLLM,
+    setCurrentLLM,
+    saveApiKey,
+    currentSpeechModel,
+    setCurrentSpeechModel,
+    speechApiKey,
+    setSpeechApiKey
+  } = useTranslationSettings();
 
   // 初始化翻译功能
   const {
@@ -28,35 +43,15 @@ const Index = () => {
     targetLanguage,
     setTargetLanguage,
     isTranslating,
-    useLLM,
-    setUseLLM,
-    llmApiKey,
-    setLlmApiKey,
-    showApiKeyInput,
-    setShowApiKeyInput,
-    currentLLM,
-    setCurrentLLM,
     translationError,
     translationHistory,
     clearTranslation,
     handleSwapLanguages,
-    handleRetryTranslation,
-    saveApiKey
+    handleRetryTranslation
   } = useTranslation({ 
     initialSourceLanguage: LANGUAGES[1], // 英语
     initialTargetLanguage: LANGUAGES[0], // 中文
   });
-
-  // 初始化语音模型选择器
-  const {
-    isVoiceModelSelectorOpen,
-    openVoiceModelSelector,
-    closeVoiceModelSelector,
-    currentSpeechModel,
-    setCurrentSpeechModel,
-    speechApiKey,
-    setSpeechApiKey
-  } = useVoiceModel();
 
   // 初始化语音功能
   const {
@@ -76,24 +71,19 @@ const Index = () => {
     speechApiKey
   });
 
-  // 初始化设置模态框
-  const {
-    isSettingsModalOpen,
-    openSettingsModal,
-    closeSettingsModal
-  } = useTranslationSettings();
-
   return (
     <TranslationLayout
       isSettingsModalOpen={isSettingsModalOpen}
       openSettingsModal={openSettingsModal}
       onCloseSettingsModal={closeSettingsModal}
-      useLLM={useLLM}
-      setUseLLM={setUseLLM}
       currentLLM={currentLLM}
       setCurrentLLM={setCurrentLLM}
       llmApiKey={llmApiKey}
       setLlmApiKey={setLlmApiKey}
+      currentSpeechModel={currentSpeechModel}
+      setCurrentSpeechModel={setCurrentSpeechModel}
+      speechApiKey={speechApiKey}
+      setSpeechApiKey={setSpeechApiKey}
       isNative={isNative}
       isAndroid={isAndroid}
     >
@@ -115,7 +105,7 @@ const Index = () => {
         setTargetLanguage={setTargetLanguage}
         handleSwapLanguages={handleSwapLanguages}
         languages={LANGUAGES}
-        useLLM={useLLM}
+        useLLM={true}
         currentLLM={currentLLM}
       />
 
@@ -143,17 +133,6 @@ const Index = () => {
         handleTextToSpeech={handleTextToSpeech}
         openSettingsModal={openSettingsModal}
         speechSupported={speechSupported}
-        openVoiceModelSelector={openVoiceModelSelector}
-      />
-
-      {/* 语音模型选择器对话框 */}
-      <VoiceModelSelector
-        isOpen={isVoiceModelSelectorOpen}
-        onClose={closeVoiceModelSelector}
-        currentModel={currentSpeechModel}
-        setCurrentModel={setCurrentSpeechModel}
-        apiKey={speechApiKey}
-        setApiKey={setSpeechApiKey}
       />
     </TranslationLayout>
   );

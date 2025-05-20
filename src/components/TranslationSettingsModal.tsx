@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loading, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 
 interface TranslationSettingsModalProps {
   isOpen: boolean;
@@ -129,7 +129,7 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
   const renderConnectionStatus = () => {
     switch (connectionStatus) {
       case 'testing':
-        return <Loading className="h-5 w-5 animate-spin text-blue-500" />;
+        return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;
       case 'success':
         return <CheckCircle2 className="h-5 w-5 text-green-500" />;
       case 'failed':

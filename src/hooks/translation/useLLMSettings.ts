@@ -2,12 +2,21 @@
 import { useState, useEffect } from "react";
 import { LLMProvider } from "@/services/translation/types";
 import { toast } from "sonner";
+import { useVoiceModel } from "@/hooks/useVoiceModel";
 
 export const useLLMSettings = () => {
   // 确保所有的状态钩子在最顶层
   const [llmApiKey, setLlmApiKey] = useState("");
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [currentLLM, setCurrentLLM] = useState<LLMProvider>("huggingface");
+  
+  // 获取语音模型设置
+  const {
+    currentSpeechModel,
+    setCurrentSpeechModel,
+    speechApiKey,
+    setSpeechApiKey
+  } = useVoiceModel();
   
   // 保存API密钥
   const saveApiKey = () => {
@@ -41,6 +50,10 @@ export const useLLMSettings = () => {
     setShowApiKeyInput,
     currentLLM,
     setCurrentLLM,
+    currentSpeechModel,
+    setCurrentSpeechModel,
+    speechApiKey,
+    setSpeechApiKey,
     saveApiKey
   };
 };

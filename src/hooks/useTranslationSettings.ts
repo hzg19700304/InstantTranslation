@@ -1,9 +1,10 @@
 
 import { useState, useCallback } from "react";
-import { LLMProvider } from "@/services/translation/types";
+import { useLLMSettings } from "@/hooks/translation/useLLMSettings";
 
 export const useTranslationSettings = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const llmSettings = useLLMSettings();
 
   // 打开设置模态框
   const openSettingsModal = useCallback(() => {
@@ -18,6 +19,7 @@ export const useTranslationSettings = () => {
   return {
     isSettingsModalOpen,
     openSettingsModal,
-    closeSettingsModal
+    closeSettingsModal,
+    ...llmSettings
   };
 };
