@@ -41,7 +41,6 @@ export const useTranslation = ({
     setIsTranslating: state.setIsTranslating,
     setTranslatedText: state.setTranslatedText,
     setTranslationError: state.setTranslationError,
-    useLLM: llmSettings.useLLM,
     llmApiKey: llmSettings.llmApiKey,
     currentLLM: llmSettings.currentLLM,
     retryCount: state.retryCount,
@@ -78,8 +77,6 @@ export const useTranslation = ({
     clearTranslation: state.clearTranslation,
     
     // LLM 设置导出
-    useLLM: llmSettings.useLLM,
-    setUseLLM: llmSettings.setUseLLM,
     llmApiKey: llmSettings.llmApiKey,
     setLlmApiKey: llmSettings.setLlmApiKey,
     showApiKeyInput: llmSettings.showApiKeyInput,

@@ -14,7 +14,6 @@ interface UseTranslationLogicProps {
   setIsTranslating: (isTranslating: boolean) => void;
   setTranslatedText: (text: string) => void;
   setTranslationError: (error: string) => void;
-  useLLM: boolean;
   llmApiKey: string;
   currentLLM: LLMProvider;
   retryCount: number;
@@ -39,7 +38,6 @@ export const useTranslationLogic = ({
   setIsTranslating,
   setTranslatedText,
   setTranslationError,
-  useLLM,
   llmApiKey,
   currentLLM,
   retryCount,
@@ -58,7 +56,6 @@ export const useTranslationLogic = ({
     sourceText,
     sourceLanguageCode: sourceLanguage.code,
     targetLanguageCode: targetLanguage.code,
-    useLLM,
     llmApiKey,
     currentLLM,
     isFirstTranslation: isFirstTranslationRef.current,
@@ -70,6 +67,14 @@ export const useTranslationLogic = ({
     if (!sourceText) {
       setTranslatedText("");
       setTranslationError("");
+      return;
+    }
+    
+    if (!llmApiKey) {
+      setTranslationError("未配置API密钥，请在设置中配置");
+      toast.error("翻译需要API密钥", {
+        description: "请在设置中配置大模型API密钥"
+      });
       return;
     }
     
@@ -142,7 +147,7 @@ export const useTranslationLogic = ({
       console.error("Translation error:", error);
       setTranslationError("翻译服务连接失败");
       toast.error("翻译失败", {
-        description: "无法完成翻译，请稍后再试或切换翻译模式"
+        description: "无法完成翻译，请稍后再试或检查API密钥"
       });
     } finally {
       // 确认当前源文本没有变化，才结束翻译状态
@@ -160,7 +165,8 @@ export const useTranslationLogic = ({
     setTranslatedText, 
     setTranslationError, 
     processIncrementalTranslation,
-    addToTranslationHistory
+    addToTranslationHistory,
+    llmApiKey
   ]);
   
   // 使用翻译计时器 - must follow performTranslation
@@ -168,7 +174,7 @@ export const useTranslationLogic = ({
     sourceText,
     translationTimeoutRef,
     performTranslation,
-    dependencies: [sourceLanguage, targetLanguage, useLLM, llmApiKey, currentLLM, retryCount]
+    dependencies: [sourceLanguage, targetLanguage, llmApiKey, currentLLM, retryCount]
   });
 
   // 语言或模型改变时，重置上次翻译的文本记录和完整翻译记录
@@ -177,7 +183,7 @@ export const useTranslationLogic = ({
     previousTranslationResultRef.current = "";
     completeTranslationRef.current = "";
     isFirstTranslationRef.current = true;
-  }, [sourceLanguage, targetLanguage, useLLM, currentLLM]);
+  }, [sourceLanguage, targetLanguage, currentLLM]);
 
   // 手动重试翻译功能
   const handleRetryTranslation = useCallback(() => {
@@ -187,7 +193,7 @@ export const useTranslationLogic = ({
     isFirstTranslationRef.current = true;
     setRetryCount(prevCount => prevCount + 1);
     toast.info("正在重试翻译", {
-      description: "尝试连接到备用翻译服务器..."
+      description: "尝试重新连接翻译服务..."
     });
   }, [setRetryCount]);
 

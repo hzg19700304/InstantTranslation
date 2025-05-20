@@ -1,14 +1,13 @@
 
 import { useCallback } from "react";
 import { toast } from "sonner";
-import { translateText, translateWithLLM } from "@/services/translation";
+import { translateWithLLM } from "@/services/translation";
 import { LLMProvider } from "@/services/translation/types";
 
 interface UseTranslationCoreProps {
   sourceText: string;
   sourceLanguageCode: string;
   targetLanguageCode: string;
-  useLLM: boolean;
   llmApiKey: string;
   currentLLM: LLMProvider;
   isFirstTranslation: boolean;
@@ -22,7 +21,6 @@ export const useTranslationCore = ({
   sourceText,
   sourceLanguageCode,
   targetLanguageCode,
-  useLLM,
   llmApiKey,
   currentLLM,
   isFirstTranslation,
@@ -33,39 +31,36 @@ export const useTranslationCore = ({
   const executeTranslation = useCallback(async (textToTranslate: string): Promise<string> => {
     try {
       console.log("开始翻译", { 
-        使用大模型: useLLM, 
         源语言: sourceLanguageCode, 
         目标语言: targetLanguageCode,
         文本长度: textToTranslate.length,
-        是否首次翻译: isFirstTranslation
+        是否首次翻译: isFirstTranslation,
+        使用模型: currentLLM
       });
       
-      let result;
-      if (useLLM && llmApiKey) {
-        console.log(`使用${currentLLM}大模型翻译...`);
-        result = await translateWithLLM(
-          textToTranslate,
-          sourceLanguageCode,
-          targetLanguageCode,
-          llmApiKey,
-          currentLLM
-        );
-      } else {
-        // 普通API翻译
-        console.log("使用免费API翻译...");
-        result = await translateText(
-          textToTranslate,
-          sourceLanguageCode,
-          targetLanguageCode
-        );
+      if (!llmApiKey) {
+        toast.error("缺少API密钥", {
+          description: "请在设置中配置大模型API密钥"
+        });
+        return "[翻译失败: 缺少API密钥]";
       }
+      
+      // 使用大模型翻译
+      console.log(`使用${currentLLM}大模型翻译...`);
+      const result = await translateWithLLM(
+        textToTranslate,
+        sourceLanguageCode,
+        targetLanguageCode,
+        llmApiKey,
+        currentLLM
+      );
       
       console.log("翻译结果:", { result: result.substring(0, 50) + (result.length > 50 ? '...' : '') });
       
       // 检查返回结果是否包含错误信息
       if (typeof result === 'string' && result.includes("[翻译失败:")) {
         toast.error("翻译服务暂时不可用", {
-          description: "我们正在尝试连接到备用服务器"
+          description: "请检查API密钥是否正确或稍后重试"
         });
         return "[翻译失败]";
       }
@@ -74,11 +69,11 @@ export const useTranslationCore = ({
     } catch (error) {
       console.error("Translation error:", error);
       toast.error("翻译失败", {
-        description: "无法完成翻译，请稍后再试或切换翻译模式"
+        description: "无法完成翻译，请稍后再试或检查API密钥"
       });
       return "[翻译失败]";
     }
-  }, [sourceLanguageCode, targetLanguageCode, useLLM, llmApiKey, currentLLM, isFirstTranslation]);
+  }, [sourceLanguageCode, targetLanguageCode, llmApiKey, currentLLM, isFirstTranslation]);
 
   // 处理增量翻译逻辑
   const processIncrementalTranslation = useCallback(async (

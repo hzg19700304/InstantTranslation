@@ -5,7 +5,6 @@ import { toast } from "sonner";
 
 export const useLLMSettings = () => {
   // 确保所有的状态钩子在最顶层
-  const [useLLM, setUseLLM] = useState(false);
   const [llmApiKey, setLlmApiKey] = useState("");
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [currentLLM, setCurrentLLM] = useState<LLMProvider>("huggingface");
@@ -36,8 +35,6 @@ export const useLLMSettings = () => {
   }, []);
 
   return {
-    useLLM,
-    setUseLLM,
     llmApiKey,
     setLlmApiKey,
     showApiKeyInput,

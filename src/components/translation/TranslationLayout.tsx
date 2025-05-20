@@ -1,21 +1,22 @@
 
 import React from "react";
-import { Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import TranslationSettingsModal from "@/components/TranslationSettingsModal";
 import { LLMProvider } from "@/services/translation/types";
+import { SpeechModel } from "@/components/speech/VoiceModelSelector";
 
 interface TranslationLayoutProps {
   children: React.ReactNode;
   isSettingsModalOpen: boolean;
   openSettingsModal: () => void;
   onCloseSettingsModal: () => void;
-  useLLM: boolean;
-  setUseLLM: (useLLM: boolean) => void;
   currentLLM: LLMProvider;
   setCurrentLLM: (currentLLM: LLMProvider) => void;
   llmApiKey: string;
   setLlmApiKey: (llmApiKey: string) => void;
+  currentSpeechModel?: SpeechModel;
+  setCurrentSpeechModel?: (model: SpeechModel) => void;
+  speechApiKey?: string;
+  setSpeechApiKey?: (apiKey: string) => void;
   isNative?: boolean;
   isAndroid?: boolean;
 }
@@ -25,12 +26,14 @@ const TranslationLayout: React.FC<TranslationLayoutProps> = ({
   isSettingsModalOpen,
   openSettingsModal,
   onCloseSettingsModal,
-  useLLM,
-  setUseLLM,
   currentLLM,
   setCurrentLLM,
   llmApiKey,
   setLlmApiKey,
+  currentSpeechModel,
+  setCurrentSpeechModel,
+  speechApiKey,
+  setSpeechApiKey,
   isNative = false,
   isAndroid = false,
 }) => {
@@ -66,12 +69,16 @@ const TranslationLayout: React.FC<TranslationLayoutProps> = ({
       <TranslationSettingsModal
         isOpen={isSettingsModalOpen}
         onClose={onCloseSettingsModal}
-        useLLM={useLLM}
-        setUseLLM={setUseLLM}
+        useLLM={true}
+        setUseLLM={() => {}}
         currentLLM={currentLLM}
         setCurrentLLM={setCurrentLLM}
         llmApiKey={llmApiKey}
         setLlmApiKey={setLlmApiKey}
+        currentSpeechModel={currentSpeechModel}
+        setCurrentSpeechModel={setCurrentSpeechModel}
+        speechApiKey={speechApiKey}
+        setSpeechApiKey={setSpeechApiKey}
       />
     </div>
   );
