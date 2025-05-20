@@ -83,6 +83,7 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
   };
 
   const handleTestSpeechConnection = async () => {
+    // 确保类型检查正确
     if (currentSpeechModel === "webspeech") {
       const speechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (speechRecognition) {
@@ -94,6 +95,7 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
       }
     }
     
+    // 对于其他模型类型，需要 API 密钥
     if (!speechApiKey) {
       toast.error("请先输入OpenAI API密钥", { description: "需要API密钥才能测试连接" });
       return;
@@ -228,7 +230,7 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
                 </div>
               </RadioGroup>
               
-              {currentSpeechModel !== "webspeech" && (
+              {currentSpeechModel && currentSpeechModel !== "webspeech" && (
                 <div className="grid grid-cols-[1fr,auto] gap-2 items-end">
                   <div>
                     <Label htmlFor="speechApiKey" className="text-sm mb-1 block">
