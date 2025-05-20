@@ -33,7 +33,7 @@ export const startModelVoiceInput = async (
 
     // 当录音停止时，发送到OpenAI API
     mediaRecorder.onstop = async () => {
-      if (!isRecording) {
+      if (!isRecording || audioChunks.length === 0) {
         return;
       }
       
@@ -51,10 +51,15 @@ export const startModelVoiceInput = async (
         
         console.log(`使用${model}模型进行语音识别`);
         
-        // 发送到OpenAI API，修正API端点路径
-        const endpoint = model === "whisper" ? 
-          'https://api.openai.com/v1/audio/transcriptions' : 
-          'https://api.openai.com/v1/audio/speech';
+        // 根据模型选择正确的API端点
+        let endpoint;
+        if (model === "whisper") {
+          endpoint = 'https://api.openai.com/v1/audio/transcriptions';
+        } else if (model === "gpt4o" || model === "gpt4omini") {
+          endpoint = 'https://api.openai.com/v1/audio/transcriptions';
+        } else {
+          throw new Error(`不支持的模型: ${model}`);
+        }
         
         const response = await fetch(endpoint, {
           method: 'POST',
@@ -65,8 +70,9 @@ export const startModelVoiceInput = async (
         });
         
         if (!response.ok) {
+          const responseText = await response.text();
           console.error(`OpenAI API错误: ${response.status}`);
-          console.error(`响应内容:`, await response.text());
+          console.error(`响应内容:`, responseText);
           throw new Error(`API错误: ${response.status}`);
         }
         
@@ -80,6 +86,9 @@ export const startModelVoiceInput = async (
       } catch (error) {
         console.error('语音识别API错误:', error);
         onEnd();
+      } finally {
+        // 在完成处理后清空音频块
+        audioChunks.length = 0;
       }
     };
 
@@ -91,18 +100,36 @@ export const startModelVoiceInput = async (
     const intervalId = setInterval(() => {
       if (isRecording && audioChunks.length > 0) {
         mediaRecorder.stop();
-        // 清空之前的音频块，准备下一次录制
-        audioChunks.length = 0;
-        mediaRecorder.start();
+        // mediaRecorder.start() 将在 onstop 事件处理完成后调用
       }
     }, 10000);
+
+    // 添加媒体记录器的错误处理
+    mediaRecorder.onerror = (event) => {
+      console.error('媒体记录器错误:', event);
+      isRecording = false;
+      clearInterval(intervalId);
+      if (mediaRecorder.state !== 'inactive') {
+        try {
+          mediaRecorder.stop();
+        } catch (e) {
+          console.error('停止媒体记录器时出错:', e);
+        }
+      }
+      stream.getTracks().forEach(track => track.stop());
+      onEnd();
+    };
 
     // 返回停止函数
     return () => {
       isRecording = false;
       clearInterval(intervalId);
       if (mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
+        try {
+          mediaRecorder.stop();
+        } catch (e) {
+          console.error('停止媒体记录器时出错:', e);
+        }
       }
       stream.getTracks().forEach(track => track.stop());
       onEnd();
@@ -120,9 +147,9 @@ const getModelName = (model: SpeechModel): string => {
     case "whisper":
       return "whisper-1";
     case "gpt4o":
-      return "gpt-4o";
+      return "whisper-1"; // OpenAI的transcriptions API实际上用的是whisper
     case "gpt4omini":
-      return "gpt-4o-mini";
+      return "whisper-1"; // 同上，目前OpenAI只提供whisper-1
     default:
       return "whisper-1";
   }

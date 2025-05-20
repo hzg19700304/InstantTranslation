@@ -158,20 +158,21 @@ export const useSpeechFeatures = ({
     };
     
     // 根据当前选择的模型启动语音识别
-    let stopListening: () => void;
-    
     if (currentSpeechModel === "webspeech") {
       // 使用Web Speech API
-      stopListening = startVoiceInput(
+      const stopListening = startVoiceInput(
         sourceLanguageCode,
         handleResult,
         () => {
-          // 语音识别结束
-          setIsListening(false);
-          stopListeningRef.current = null;
-          toast.info("语音识别已结束", {
-            description: "语音输入已自动停止"
-          });
+          // 只有当isListening为true时才显示语音识别结束的通知
+          // 这防止了未启动识别时的错误消息
+          if (isListening) {
+            setIsListening(false);
+            stopListeningRef.current = null;
+            toast.info("语音识别已结束", {
+              description: "语音输入已自动停止"
+            });
+          }
         }
       );
       stopListeningRef.current = stopListening;
@@ -183,12 +184,14 @@ export const useSpeechFeatures = ({
         sourceLanguageCode,
         handleResult,
         () => {
-          // 语音识别结束
-          setIsListening(false);
-          stopListeningRef.current = null;
-          toast.info("语音识别已结束", {
-            description: "语音输入已自动停止"
-          });
+          // 只有当isListening为true时才显示语音识别结束的通知
+          if (isListening) {
+            setIsListening(false);
+            stopListeningRef.current = null;
+            toast.info("语音识别已结束", {
+              description: "语音输入已自动停止"
+            });
+          }
         }
       ).then(stopFunc => {
         if (stopFunc) {
@@ -202,7 +205,7 @@ export const useSpeechFeatures = ({
         });
       });
     }
-  }, [sourceLanguageCode, sourceLanguageName, setSourceText, sourceText, currentSpeechModel, speechApiKey]);
+  }, [sourceLanguageCode, sourceLanguageName, setSourceText, sourceText, currentSpeechModel, speechApiKey, isListening]);
 
   // 文本朗读功能
   const handleTextToSpeech = useCallback(() => {
