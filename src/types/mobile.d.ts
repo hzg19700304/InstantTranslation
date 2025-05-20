@@ -13,6 +13,9 @@ interface CapacitorGlobal {
 // 扩展Window类型
 interface Window {
   Capacitor?: CapacitorGlobal;
+  SpeechRecognition?: any;
+  webkitSpeechRecognition?: any;
+  speechSynthesis?: SpeechSynthesis;
 }
 
 // 重新声明WebSpeechAPI的类型，以更好地支持移动环境中的错误处理

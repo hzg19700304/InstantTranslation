@@ -30,10 +30,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         variant="outline"
         size="sm"
         onClick={handleVoiceInput}
-        disabled={!speechSupported}
         className={`border-translator-primary/20 hover:bg-translator-secondary transition-colors ${
           isListening ? "bg-red-100 border-red-300 text-red-600" : ""
         } ${!speechSupported ? "opacity-50 cursor-not-allowed" : ""}`}
+        disabled={!speechSupported}
       >
         {isListening ? (
           <MicOff size={16} className="mr-1.5 animate-pulse text-red-600" />
@@ -49,7 +49,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         onClick={handleTextToSpeech}
         className={`border-translator-primary/20 hover:bg-translator-secondary transition-colors ${
           isSpeaking ? "bg-blue-100 border-blue-300 text-blue-600" : ""
-        } ${!speechSupported ? "opacity-50 cursor-not-allowed" : ""}`}
+        } ${!speechSupported || !translatedText || isTranslating ? "opacity-50 cursor-not-allowed" : ""}`}
         disabled={!translatedText || isTranslating || !speechSupported}
       >
         <Volume2 size={16} className={`mr-1.5 ${isSpeaking ? "animate-pulse text-blue-600" : ""}`} /> 

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { startVoiceInput, speakText } from "@/services/speech";
+import { useMobilePlatform } from "@/hooks/use-mobile-platform";
 
 interface UseSpeechFeaturesProps {
   sourceText: string;
@@ -24,6 +25,9 @@ export const useSpeechFeatures = ({
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(true);
+  
+  // 获取平台信息
+  const { isNative, isAndroid } = useMobilePlatform();
   
   // 引用必须在所有状态声明之后
   const stopListeningRef = useRef<(() => void) | null>(null);
@@ -172,7 +176,7 @@ export const useSpeechFeatures = ({
     setIsSpeaking(true);
     
     // 开始朗读
-    const stopSpeaking = speakText(translatedText, targetLanguageCode);
+    speakText(translatedText, targetLanguageCode);
     
     // 监听朗读结束
     const checkSpeaking = setInterval(() => {
@@ -184,13 +188,12 @@ export const useSpeechFeatures = ({
     
     return () => {
       clearInterval(checkSpeaking);
-      stopSpeaking();
+      window.speechSynthesis?.cancel();
     };
   }, [translatedText, targetLanguageCode, isSpeaking, speechSupported]);
 
-  // Effects must come after all callbacks
+  // 组件卸载时清理资源
   useEffect(() => {
-    // 组件卸载时清理资源
     return () => {
       if (stopListeningRef.current) {
         stopListeningRef.current();

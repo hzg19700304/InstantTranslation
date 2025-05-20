@@ -10,7 +10,9 @@ const isMobileApp = (): boolean => {
 
 // 检查语音API可用性
 const checkSpeechSupport = (): { recognition: boolean, synthesis: boolean } => {
-  const hasRecognition = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  // 为了兼容安卓系统，我们需要检查webkitSpeechRecognition
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const hasRecognition = !!SpeechRecognition;
   const hasSynthesis = !!(window.speechSynthesis);
   
   return {
@@ -29,7 +31,6 @@ export const startVoiceInput = (
   
   if (!support.recognition) {
     console.error("当前设备或浏览器不支持语音识别");
-    // 通知调用者语音识别不可用
     setTimeout(() => onEnd(), 0);
     return () => {};
   }
@@ -44,6 +45,7 @@ export const startVoiceInput = (
   recognition.lang = language;
   recognition.maxAlternatives = 1; // 减少计算负担
 
+  // 在安卓WebView中，continuous模式可能不稳定，所以我们手动处理重启
   let interimTranscript = '';
   let isRestarting = false;
   let restartAttempts = 0;
@@ -81,12 +83,6 @@ export const startVoiceInput = (
       // 添加更长的延迟，减少移动设备上的资源占用
       setTimeout(() => {
         try {
-          // 在移动设备上，可能需要重新请求录音权限
-          if (isMobileApp()) {
-            // TODO: 使用Capacitor插件请求权限
-            // 这需要添加Capacitor的麦克风插件
-          }
-          
           recognition.start();
           console.log("语音识别服务自动重启");
         } catch (error) {
@@ -100,7 +96,7 @@ export const startVoiceInput = (
     }
   };
 
-  recognition.onerror = (event) => {
+  recognition.onerror = (event: any) => {
     console.error("语音识别错误:", event.error);
     
     // 移动设备上的特定错误处理
