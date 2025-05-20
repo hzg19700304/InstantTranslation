@@ -51,8 +51,12 @@ export const startModelVoiceInput = async (
         
         console.log(`使用${model}模型进行语音识别`);
         
-        // 发送到OpenAI API
-        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        // 发送到OpenAI API，修正API端点路径
+        const endpoint = model === "whisper" ? 
+          'https://api.openai.com/v1/audio/transcriptions' : 
+          'https://api.openai.com/v1/audio/speech';
+        
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${apiKey}`
@@ -61,6 +65,8 @@ export const startModelVoiceInput = async (
         });
         
         if (!response.ok) {
+          console.error(`OpenAI API错误: ${response.status}`);
+          console.error(`响应内容:`, await response.text());
           throw new Error(`API错误: ${response.status}`);
         }
         
@@ -83,8 +89,10 @@ export const startModelVoiceInput = async (
     
     // 每10秒发送一次请求（可配置）
     const intervalId = setInterval(() => {
-      if (isRecording) {
+      if (isRecording && audioChunks.length > 0) {
         mediaRecorder.stop();
+        // 清空之前的音频块，准备下一次录制
+        audioChunks.length = 0;
         mediaRecorder.start();
       }
     }, 10000);
@@ -93,7 +101,9 @@ export const startModelVoiceInput = async (
     return () => {
       isRecording = false;
       clearInterval(intervalId);
-      mediaRecorder.stop();
+      if (mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
       stream.getTracks().forEach(track => track.stop());
       onEnd();
     };

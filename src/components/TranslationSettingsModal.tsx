@@ -83,7 +83,7 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
   };
 
   const handleTestSpeechConnection = async () => {
-    // 确保类型检查正确
+    // Web Speech API 不需要 API 密钥，只需要检查浏览器是否支持
     if (currentSpeechModel === "webspeech") {
       const speechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (speechRecognition) {
@@ -249,7 +249,7 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
                   </div>
                   <Button 
                     onClick={handleTestSpeechConnection} 
-                    disabled={isTestingConnection || (currentSpeechModel !== "webspeech" && !speechApiKey)}
+                    disabled={isTestingConnection || (!["webspeech"].includes(currentSpeechModel) && !speechApiKey)}
                     size="sm"
                     className="min-w-[80px]"
                   >

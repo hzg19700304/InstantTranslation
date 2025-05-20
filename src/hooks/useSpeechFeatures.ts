@@ -139,6 +139,8 @@ export const useSpeechFeatures = ({
         setSourceText(newText);
         currentVoiceSessionTextRef.current = newText;
         lastInterimResultRef.current = "";
+        
+        console.log("语音识别最终结果:", text);
       } else {
         // 处理临时结果，显示在输入框中但不影响已有文本
         // 移除上一个临时结果，添加新的临时结果
@@ -172,6 +174,7 @@ export const useSpeechFeatures = ({
           });
         }
       );
+      stopListeningRef.current = stopListening;
     } else {
       // 使用外部模型API
       startModelVoiceInput(
@@ -188,15 +191,17 @@ export const useSpeechFeatures = ({
           });
         }
       ).then(stopFunc => {
-        stopListening = stopFunc;
-        stopListeningRef.current = stopFunc;
+        if (stopFunc) {
+          stopListeningRef.current = stopFunc;
+        }
+      }).catch(error => {
+        console.error("启动模型语音识别错误:", error);
+        setIsListening(false);
+        toast.error("无法启动语音识别", {
+          description: "请检查API密钥和网络连接"
+        });
       });
-      
-      // 暂时占位函数，真正的停止函数将通过Promise设置
-      stopListening = () => {};
     }
-    
-    stopListeningRef.current = stopListening;
   }, [sourceLanguageCode, sourceLanguageName, setSourceText, sourceText, currentSpeechModel, speechApiKey]);
 
   // 文本朗读功能
