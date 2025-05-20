@@ -35,7 +35,7 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
   setSourceText,
   handleRetryTranslation,
   translationHistory = [],
-  handleClearTranslation,
+  handleClearTranslation = () => {},
 }) => {
   return (
     <div className="space-y-4">

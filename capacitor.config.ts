@@ -6,8 +6,11 @@ const config: CapacitorConfig = {
   appName: '即时翻译',
   webDir: 'dist',
   server: {
-    url: "https://4ecdefce-e679-4f52-95f8-34e52426df93.lovableproject.com?forceHideBadge=true",
-    cleartext: true
+    androidScheme: 'https',
+    cleartext: true,
+    hostname: 'lovable',
+    // 移除URL配置，让应用使用本地文件而不是远程URL
+    // url: "https://4ecdefce-e679-4f52-95f8-34e52426df93.lovableproject.com?forceHideBadge=true",
   },
   android: {
     // Android特定配置
