@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { LLMProvider } from "@/services/translation/types";
 import { getLLMDisplayName } from "@/services/translation";
@@ -32,7 +32,7 @@ export const LLMProviderSelector: React.FC<LLMProviderSelectorProps> = ({
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="w-full justify-between">
               {getLLMDisplayName(currentLLM)}
-              <Check className="h-4 w-4 ml-2" />
+              <ChevronDown className="h-4 w-4 ml-2" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -55,4 +55,3 @@ export const LLMProviderSelector: React.FC<LLMProviderSelectorProps> = ({
     </div>
   );
 };
-

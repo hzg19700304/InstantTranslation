@@ -6,6 +6,7 @@ import { LLMProvider } from "@/services/translation/types";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { testLLMConnection } from "@/services/translation";
 
 interface TranslationTabProps {
   currentLLM: LLMProvider;
@@ -32,8 +33,6 @@ export const TranslationTab: React.FC<TranslationTabProps> = ({
     setIsTestingConnection(true);
     setConnectionStatus('testing');
     try {
-      // 导入测试函数
-      const { testLLMConnection } = await import('@/services/translation/llmTranslation');
       const result = await testLLMConnection(llmApiKey, currentLLM);
       
       if (result) {
