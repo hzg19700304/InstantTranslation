@@ -19,10 +19,10 @@ export const useSpeechSupport = ({
     const hasSynthesis = !!(window.speechSynthesis);
     
     // If using a model for speech recognition, check if MediaDevices API is available
-    const isUsingModel = currentSpeechModel !== "webspeech";
+    const isUsingExternalModel = currentSpeechModel !== "webspeech";
     const hasMediaDevices = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     
-    if (isUsingModel) {
+    if (isUsingExternalModel) {
       // When using an external model, check for API key and media device access
       const hasApiKey = !!speechApiKey;
       setSpeechSupported(hasMediaDevices && hasApiKey && hasSynthesis);

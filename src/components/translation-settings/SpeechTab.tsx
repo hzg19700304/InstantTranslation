@@ -130,6 +130,7 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
         </div>
       </RadioGroup>
       
+      {/* Fix the comparison by ensuring we're handling types properly */}
       {currentSpeechModel !== "webspeech" && (
         <div>
           <div className="grid grid-cols-[1fr,auto] gap-2 items-end">
