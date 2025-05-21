@@ -23,24 +23,25 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
 }) => {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
+  const [apiKeyInput, setApiKeyInput] = useState(speechApiKey);
 
-  const handleTestSpeechConnection = async () => {
+  const testSpeechConnection = async () => {
     // Web Speech API 不需要 API 密钥，只需要检查浏览器是否支持
     if (currentSpeechModel === "webspeech") {
       const speechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (speechRecognition) {
         toast.success("浏览器支持Web Speech API", { description: "可以使用原生语音识别" });
-        return;
+        return true;
       } else {
         toast.error("浏览器不支持Web Speech API", { description: "请尝试使用其他语音识别模型" });
-        return;
+        return false;
       }
     }
     
     // 对于其他模型类型，需要 API 密钥
-    if (!speechApiKey) {
+    if (!apiKeyInput) {
       toast.error("请先输入OpenAI API密钥", { description: "需要API密钥才能测试连接" });
-      return;
+      return false;
     }
     
     setIsTestingConnection(true);
@@ -50,23 +51,43 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
       const response = await fetch('https://api.openai.com/v1/models', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${speechApiKey}`
+          'Authorization': `Bearer ${apiKeyInput}`
         }
       });
       
       if (response.ok) {
         toast.success("OpenAI API连接成功", { description: "API密钥有效" });
         setConnectionStatus('success');
+        return true;
       } else {
         toast.error("OpenAI API连接失败", { description: "API密钥无效或服务不可用" });
         setConnectionStatus('failed');
+        return false;
       }
     } catch (error) {
       console.error("测试语音模型连接错误:", error);
       toast.error("连接测试出错", { description: "请检查网络连接和API密钥" });
       setConnectionStatus('failed');
+      return false;
     } finally {
       setIsTestingConnection(false);
+    }
+  };
+
+  const handleSaveApiKey = async () => {
+    if (!apiKeyInput && showApiKeyInput) {
+      toast.error("请输入API密钥", { description: "需要API密钥才能保存" });
+      return;
+    }
+    
+    // 保存API密钥
+    setSpeechApiKey(apiKeyInput);
+    localStorage.setItem('speech-api-key', apiKeyInput);
+    toast.success("API密钥已保存", { description: "您的API密钥已保存在本地" });
+
+    // 自动测试连接
+    if (showApiKeyInput) {
+      await testSpeechConnection();
     }
   };
 
@@ -142,8 +163,8 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
               </Label>
               <Input
                 id="speechApiKey"
-                value={speechApiKey}
-                onChange={(e) => setSpeechApiKey(e.target.value)}
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
                 placeholder="请输入OpenAI API密钥"
                 type="password"
               />
@@ -152,12 +173,12 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
               </div>
             </div>
             <Button 
-              onClick={handleTestSpeechConnection} 
-              disabled={isTestingConnection || (showApiKeyInput && !speechApiKey)}
+              onClick={handleSaveApiKey} 
+              disabled={isTestingConnection}
               size="sm"
               className="min-w-[80px]"
             >
-              {isTestingConnection ? '测试中...' : '测试连接'}
+              {isTestingConnection ? '保存中...' : '保存密钥'}
               {renderConnectionStatus()}
             </Button>
           </div>
