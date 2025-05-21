@@ -33,6 +33,11 @@ export const APIKeyInput: React.FC<APIKeyInputProps> = ({
     toast.success("API密钥已保存", {
       description: "您的API密钥已保存在本地"
     });
+    
+    // 如果提供了测试函数，自动测试连接
+    if (onTest) {
+      onTest();
+    }
   };
   
   return (
