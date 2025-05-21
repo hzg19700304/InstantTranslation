@@ -94,8 +94,8 @@ export const TranslationTab: React.FC<TranslationTabProps> = ({
         }} 
       />
       
-      {/* 添加帮助信息 */}
-      <Alert variant="outline" className="mb-2">
+      {/* 修改Alert组件，使用默认变体而不是outline变体 */}
+      <Alert className="mb-2">
         <AlertTriangle className="h-4 w-4 mr-2" />
         <AlertDescription>
           {getModelHelpInfo()}
