@@ -83,6 +83,9 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
     }
   };
 
+  // 根据当前模型确定是否需要显示API密钥输入
+  const showApiKeyInput = currentSpeechModel !== "webspeech";
+
   return (
     <div className="grid gap-4">
       <RadioGroup
@@ -130,8 +133,7 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
         </div>
       </RadioGroup>
       
-      {/* 完全避免使用条件表达式进行比较，使用字符串相等性检查 */}
-      {currentSpeechModel === "webspeech" ? null : (
+      {showApiKeyInput && (
         <div>
           <div className="grid grid-cols-[1fr,auto] gap-2 items-end">
             <div>
@@ -151,7 +153,7 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
             </div>
             <Button 
               onClick={handleTestSpeechConnection} 
-              disabled={isTestingConnection || (currentSpeechModel === "webspeech" ? false : !speechApiKey)}
+              disabled={isTestingConnection || (showApiKeyInput && !speechApiKey)}
               size="sm"
               className="min-w-[80px]"
             >
