@@ -12,8 +12,12 @@ export const startModelVoiceInput = async (
   // 如果选择的是Web Speech API，则直接使用现有的startVoiceInput函数
   if (model === "webspeech") {
     // 在实际实现中，这将通过导入的startVoiceInput函数处理
-    // 这里只是占位符，实际实现将在useSpeechFeatures中处理
     return () => {};
+  }
+
+  if (!apiKey) {
+    console.error("未提供API密钥，无法使用模型语音识别");
+    throw new Error("缺少API密钥");
   }
 
   // 创建mediaRecorder以采集音频
@@ -26,19 +30,48 @@ export const startModelVoiceInput = async (
 
     // 处理音频数据
     mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
+      if (event.data.size > 0 && isRecording) {
         audioChunks.push(event.data);
       }
     };
 
     // 当录音停止时，发送到OpenAI API
     mediaRecorder.onstop = async () => {
-      if (!isRecording || audioChunks.length === 0) {
+      if (!isRecording) {
+        return;
+      }
+      
+      if (audioChunks.length === 0) {
+        console.log("没有收集到音频数据");
+        // 重新开始录音
+        if (isRecording) {
+          try {
+            mediaRecorder.start();
+            console.log("重新开始录音");
+          } catch (error) {
+            console.error("重新开始录音失败:", error);
+          }
+        }
         return;
       }
       
       try {
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        if (audioBlob.size < 100) {
+          console.log("音频数据太小，可能没有收集到有效的录音");
+          audioChunks.length = 0;
+          
+          // 重新开始录音
+          if (isRecording) {
+            try {
+              mediaRecorder.start();
+              console.log("音频数据太小，重新开始录音");
+            } catch (error) {
+              console.error("重新开始录音失败:", error);
+            }
+          }
+          return;
+        }
         
         // 创建表单数据
         const formData = new FormData();
@@ -49,17 +82,10 @@ export const startModelVoiceInput = async (
           formData.append('language', language);
         }
         
-        console.log(`使用${model}模型进行语音识别`);
+        console.log(`使用${model}模型进行语音识别，音频大小: ${(audioBlob.size / 1024).toFixed(2)}KB`);
         
         // 根据模型选择正确的API端点
-        let endpoint;
-        if (model === "whisper") {
-          endpoint = 'https://api.openai.com/v1/audio/transcriptions';
-        } else if (model === "gpt4o" || model === "gpt4omini") {
-          endpoint = 'https://api.openai.com/v1/audio/transcriptions';
-        } else {
-          throw new Error(`不支持的模型: ${model}`);
-        }
+        const endpoint = 'https://api.openai.com/v1/audio/transcriptions';
         
         const response = await fetch(endpoint, {
           method: 'POST',
@@ -85,10 +111,20 @@ export const startModelVoiceInput = async (
         }
       } catch (error) {
         console.error('语音识别API错误:', error);
-        onEnd();
       } finally {
         // 在完成处理后清空音频块
         audioChunks.length = 0;
+        
+        // 如果仍在录音状态，继续录音
+        if (isRecording) {
+          try {
+            mediaRecorder.start();
+            console.log("继续录音");
+          } catch (error) {
+            console.error("继续录音失败:", error);
+            onEnd();
+          }
+        }
       }
     };
 
@@ -96,13 +132,16 @@ export const startModelVoiceInput = async (
     mediaRecorder.start();
     console.log('开始使用模型录音');
     
-    // 每10秒发送一次请求（可配置）
+    // 每5秒发送一次请求
     const intervalId = setInterval(() => {
-      if (isRecording && audioChunks.length > 0) {
-        mediaRecorder.stop();
-        // mediaRecorder.start() 将在 onstop 事件处理完成后调用
+      if (isRecording && mediaRecorder.state === "recording") {
+        try {
+          mediaRecorder.stop();
+        } catch (error) {
+          console.error("停止录音时出错:", error);
+        }
       }
-    }, 10000);
+    }, 5000);
 
     // 添加媒体记录器的错误处理
     mediaRecorder.onerror = (event) => {

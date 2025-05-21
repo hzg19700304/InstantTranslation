@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { startVoiceInput, speakText } from "@/services/speech";
@@ -54,21 +53,9 @@ export const useSpeechFeatures = ({
       // 当使用模型时，检查是否有API密钥和媒体设备访问权限
       const hasApiKey = !!speechApiKey;
       setSpeechSupported(hasMediaDevices && hasApiKey && hasSynthesis);
-      
-      if (!hasMediaDevices) {
-        console.warn("媒体设备API在当前设备上不可用");
-      }
-      
-      if (!hasApiKey) {
-        console.warn("未提供API密钥，无法使用语音模型");
-      }
     } else {
       // 使用Web Speech API时，检查语音识别和合成API是否可用
       setSpeechSupported(hasRecognition && hasSynthesis);
-      
-      if (!hasRecognition || !hasSynthesis) {
-        console.warn("语音功能在当前设备上不完全支持");
-      }
     }
   }, [currentSpeechModel, speechApiKey]);
 
@@ -139,8 +126,6 @@ export const useSpeechFeatures = ({
         setSourceText(newText);
         currentVoiceSessionTextRef.current = newText;
         lastInterimResultRef.current = "";
-        
-        console.log("语音识别最终结果:", text);
       } else {
         // 处理临时结果，显示在输入框中但不影响已有文本
         // 移除上一个临时结果，添加新的临时结果
@@ -165,7 +150,6 @@ export const useSpeechFeatures = ({
         handleResult,
         () => {
           // 只有当isListening为true时才显示语音识别结束的通知
-          // 这防止了未启动识别时的错误消息
           if (isListening) {
             setIsListening(false);
             stopListeningRef.current = null;

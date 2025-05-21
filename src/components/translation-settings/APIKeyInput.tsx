@@ -12,15 +12,16 @@ interface APIKeyInputProps {
   apiKey: string;
   setApiKey: (apiKey: string) => void;
   currentLLM: LLMProvider;
+  onTest?: () => void;
 }
 
 export const APIKeyInput: React.FC<APIKeyInputProps> = ({
   apiKey,
   setApiKey,
   currentLLM,
+  onTest
 }) => {
   const [apiKeyInput, setApiKeyInput] = useState(apiKey);
-  const [isTesting, setIsTesting] = useState(false);
   
   // 同步外部和内部状态
   useEffect(() => {
@@ -34,38 +35,6 @@ export const APIKeyInput: React.FC<APIKeyInputProps> = ({
     toast.success("API密钥已保存", {
       description: "您的API密钥已保存在本地"
     });
-  };
-  
-  // 测试连接按钮点击处理
-  const handleTestConnection = async () => {
-    if (!apiKeyInput) {
-      toast.error("请输入API密钥", {
-        description: "要测试连接，需要提供有效的API密钥"
-      });
-      return;
-    }
-    
-    setIsTesting(true);
-    
-    try {
-      const isConnected = await testLLMConnection(apiKeyInput, currentLLM);
-      
-      if (isConnected) {
-        toast.success("连接成功", {
-          description: `成功连接到${getLLMDisplayName(currentLLM)}API`
-        });
-      } else {
-        toast.error("连接失败", {
-          description: `无法连接到${getLLMDisplayName(currentLLM)}API，请检查API密钥是否有效`
-        });
-      }
-    } catch (error) {
-      toast.error("连接测试出错", {
-        description: `${(error as Error).message}`
-      });
-    } finally {
-      setIsTesting(false);
-    }
   };
   
   return (
@@ -93,21 +62,15 @@ export const APIKeyInput: React.FC<APIKeyInputProps> = ({
           >
             保存密钥
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleTestConnection}
-            disabled={isTesting}
-          >
-            {isTesting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                测试连接中...
-              </>
-            ) : (
-              "测试连接"
-            )}
-          </Button>
+          {onTest && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={onTest}
+            >
+              测试连接
+            </Button>
+          )}
         </div>
       </div>
     </>

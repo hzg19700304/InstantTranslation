@@ -169,6 +169,7 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
                   apiKey={llmApiKey}
                   setApiKey={setLlmApiKey}
                   currentLLM={currentLLM}
+                  onTest={handleTestConnection}
                 />
                 <Button 
                   onClick={handleTestConnection} 
@@ -249,7 +250,7 @@ const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
                   </div>
                   <Button 
                     onClick={handleTestSpeechConnection} 
-                    disabled={isTestingConnection || (!["webspeech"].includes(currentSpeechModel) && !speechApiKey)}
+                    disabled={isTestingConnection || (currentSpeechModel !== "webspeech" && !speechApiKey)}
                     size="sm"
                     className="min-w-[80px]"
                   >
