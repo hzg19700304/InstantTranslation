@@ -27,12 +27,12 @@ export const translateWithDeepSeek = async (
   const sourceLangName = getLanguageName(sourceLanguage);
   const targetLangName = getLanguageName(targetLanguage);
   
-  // 记录请求信息用于调试
+  // 记录请求信息用于调试，但不显示完整API密钥
   console.log("正在使用DeepSeek进行翻译:", {
     sourceLanguage: sourceLangName,
     targetLanguage: targetLangName,
     textLength: text.length,
-    apiKeyLength: apiKey.length
+    apiKeyPrefix: apiKey.substring(0, 3) // 只显示前缀，保护API密钥安全
   });
   
   // 构建提示词
@@ -59,15 +59,32 @@ export const translateWithDeepSeek = async (
           }
         ],
         temperature: 0.3,
-        max_tokens: 800
+        max_tokens: 2048 // 增加最大令牌数以支持更长的翻译
       })
     });
+    
+    // 记录API响应状态
+    console.log("DeepSeek API响应状态:", response.status);
     
     if (!response.ok) {
       const errorData = await response.json();
       console.error("DeepSeek API错误:", errorData);
+      
+      // 更详细的错误消息
+      let errorMessage = "请检查API密钥是否正确";
+      if (errorData.error?.message) {
+        errorMessage = errorData.error.message;
+        
+        // 针对常见错误给出更友好的提示
+        if (errorMessage.includes("invalid_api_key")) {
+          errorMessage = "API密钥无效，请确保输入了正确的DeepSeek API密钥";
+        } else if (errorMessage.includes("insufficient_quota")) {
+          errorMessage = "API账户余额不足，请检查您的DeepSeek账户";
+        }
+      }
+      
       toast.error(`API错误: ${response.status}`, {
-        description: errorData.error?.message || "请检查API密钥是否正确"
+        description: errorMessage
       });
       return `[翻译失败: API错误 ${response.status}]`;
     }
@@ -79,7 +96,7 @@ export const translateWithDeepSeek = async (
   } catch (error) {
     console.error("DeepSeek翻译错误:", error);
     toast.error("翻译失败", {
-      description: "连接DeepSeek API时出错，请检查网络连接"
+      description: "连接DeepSeek API时出错，请检查网络连接或代理设置"
     });
     return "[翻译失败: 连接错误]";
   }

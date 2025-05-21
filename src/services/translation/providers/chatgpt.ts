@@ -32,7 +32,7 @@ export const translateWithChatGPT = async (
       sourceLanguage: sourceLangName,
       targetLanguage: targetLangName,
       textLength: text.length,
-      apiKeyLength: apiKey.length
+      apiKeyPrefix: apiKey.substring(0, 3) // 只显示前缀，保护API密钥安全
     });
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -58,11 +58,28 @@ export const translateWithChatGPT = async (
       })
     });
 
+    // 详细记录响应状态以便调试
+    console.log("ChatGPT API响应状态:", response.status);
+    
     if (!response.ok) {
       const errorData = await response.json();
       console.error("ChatGPT API错误:", errorData);
+      
+      // 更详细的错误消息
+      let errorMessage = "请检查API密钥是否正确";
+      if (errorData.error?.message) {
+        errorMessage = errorData.error.message;
+        
+        // 针对常见错误给出更友好的提示
+        if (errorMessage.includes("invalid_api_key")) {
+          errorMessage = "API密钥无效，请确保输入了正确的OpenAI API密钥";
+        } else if (errorMessage.includes("insufficient_quota")) {
+          errorMessage = "API账户余额不足，请检查您的OpenAI账户";
+        }
+      }
+      
       toast.error(`API错误: ${response.status}`, {
-        description: errorData.error?.message || "请检查API密钥是否正确"
+        description: errorMessage
       });
       return `[翻译失败: API错误 ${response.status}]`;
     }
@@ -73,7 +90,7 @@ export const translateWithChatGPT = async (
   } catch (error) {
     console.error("ChatGPT翻译错误:", error);
     toast.error("翻译失败", {
-      description: "连接OpenAI API时出错，请检查网络连接"
+      description: "连接OpenAI API时出错，请检查网络连接或代理设置"
     });
     return "[翻译失败: 连接错误]";
   }
