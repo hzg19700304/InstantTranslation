@@ -22,6 +22,13 @@ export const translateWithChatGPT = async (
   }
 
   try {
+    // 记录请求信息用于调试
+    console.log("正在使用ChatGPT进行翻译:", {
+      sourceLanguage,
+      targetLanguage,
+      textLength: text.length
+    });
+
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -48,13 +55,20 @@ export const translateWithChatGPT = async (
     if (!response.ok) {
       const errorData = await response.json();
       console.error("ChatGPT API错误:", errorData);
+      toast.error(`API错误: ${response.status}`, {
+        description: errorData.error?.message || "请检查API密钥是否正确"
+      });
       return `[翻译失败: API错误 ${response.status}]`;
     }
 
     const data = await response.json();
+    console.log("ChatGPT API返回成功");
     return data.choices[0].message.content.trim();
   } catch (error) {
     console.error("ChatGPT翻译错误:", error);
+    toast.error("翻译失败", {
+      description: "连接OpenAI API时出错，请检查网络连接"
+    });
     return "[翻译失败: 连接错误]";
   }
 };
@@ -66,6 +80,7 @@ export const testChatGPTConnection = async (apiKey: string): Promise<boolean> =>
   if (!apiKey) return false;
 
   try {
+    console.log("测试ChatGPT API连接...");
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -84,7 +99,15 @@ export const testChatGPTConnection = async (apiKey: string): Promise<boolean> =>
       })
     });
 
-    return response.ok;
+    const isSuccess = response.ok;
+    console.log("ChatGPT API测试结果:", isSuccess ? "成功" : "失败", response.status);
+    
+    if (!isSuccess) {
+      const errorData = await response.json();
+      console.error("API测试错误详情:", errorData);
+    }
+    
+    return isSuccess;
   } catch (error) {
     console.error("测试ChatGPT连接失败:", error);
     return false;

@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { LLMProvider } from "@/services/translation/types";
 import { getLLMDisplayName } from "@/services/translation";

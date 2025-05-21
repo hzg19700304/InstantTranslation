@@ -28,6 +28,13 @@ export const APIKeyInput: React.FC<APIKeyInputProps> = ({
   
   // 保存API密钥到本地存储
   const saveApiKey = () => {
+    if (!apiKeyInput.trim()) {
+      toast.error("API密钥不能为空", {
+        description: "请输入有效的API密钥"
+      });
+      return;
+    }
+    
     localStorage.setItem('llm_api_key', apiKeyInput);
     setApiKey(apiKeyInput);
     toast.success("API密钥已保存", {
@@ -52,6 +59,7 @@ export const APIKeyInput: React.FC<APIKeyInputProps> = ({
           onChange={(e) => setApiKeyInput(e.target.value)}
           className="col-span-3"
           type="password"
+          placeholder={`输入${getLLMDisplayName(currentLLM)}的API密钥`}
         />
       </div>
       
@@ -70,3 +78,19 @@ export const APIKeyInput: React.FC<APIKeyInputProps> = ({
     </>
   );
 };
+
+// 获取LLM显示名称的辅助函数
+function getLLMDisplayName(provider: LLMProvider): string {
+  switch (provider) {
+    case 'huggingface':
+      return 'HuggingFace';
+    case 'deepseek':
+      return 'DeepSeek Chat';
+    case 'gemini':
+      return 'Google Gemini';
+    case 'chatgpt':
+      return 'ChatGPT';
+    default:
+      return provider || '未知模型';
+  }
+}

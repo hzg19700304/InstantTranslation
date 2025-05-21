@@ -38,7 +38,7 @@ export const useTranslationCore = ({
         使用模型: currentLLM
       });
       
-      if (!llmApiKey) {
+      if (!llmApiKey && currentLLM !== "huggingface") {
         toast.error("缺少API密钥", {
           description: "请在设置中配置大模型API密钥"
         });
