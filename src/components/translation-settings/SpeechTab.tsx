@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { SpeechModel } from "@/components/speech/VoiceModelSelector";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -129,8 +130,8 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
         </div>
       </RadioGroup>
       
-      {/* 确保类型安全比较 */}
-      {currentSpeechModel !== "webspeech" ? (
+      {/* 完全避免使用条件表达式进行比较，使用字符串相等性检查 */}
+      {currentSpeechModel === "webspeech" ? null : (
         <div>
           <div className="grid grid-cols-[1fr,auto] gap-2 items-end">
             <div>
@@ -150,7 +151,7 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
             </div>
             <Button 
               onClick={handleTestSpeechConnection} 
-              disabled={isTestingConnection || (currentSpeechModel !== "webspeech" && !speechApiKey)}
+              disabled={isTestingConnection || (currentSpeechModel === "webspeech" ? false : !speechApiKey)}
               size="sm"
               className="min-w-[80px]"
             >
@@ -159,7 +160,7 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
             </Button>
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 };
