@@ -4,8 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { testLLMConnection, getLLMDisplayName } from "@/services/translation/llmTranslation";
 import { LLMProvider } from "@/services/translation/types";
 
 interface APIKeyInputProps {
@@ -62,15 +60,6 @@ export const APIKeyInput: React.FC<APIKeyInputProps> = ({
           >
             保存密钥
           </Button>
-          {onTest && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={onTest}
-            >
-              测试连接
-            </Button>
-          )}
         </div>
       </div>
     </>
