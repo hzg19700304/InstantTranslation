@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Speech } from "lucide-react";
 
+// 更新SpeechModel类型定义，确保包含 "webspeech"
 export type SpeechModel = "webspeech" | "gpt4o" | "gpt4omini" | "whisper";
 
 interface VoiceModelSelectorProps {

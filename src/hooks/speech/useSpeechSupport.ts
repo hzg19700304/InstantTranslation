@@ -22,6 +22,7 @@ export const useSpeechSupport = ({
     const isUsingExternalModel = currentSpeechModel !== "webspeech";
     const hasMediaDevices = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     
+    // 使用条件判断而不是直接比较，确保类型安全
     if (isUsingExternalModel) {
       // When using an external model, check for API key and media device access
       const hasApiKey = !!speechApiKey;

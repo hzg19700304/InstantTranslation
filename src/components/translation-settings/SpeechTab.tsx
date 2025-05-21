@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { SpeechModel } from "@/components/speech/VoiceModelSelector";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -130,8 +129,8 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
         </div>
       </RadioGroup>
       
-      {/* Fix the comparison by ensuring we're handling types properly */}
-      {currentSpeechModel !== "webspeech" && (
+      {/* 确保类型安全比较 */}
+      {currentSpeechModel !== "webspeech" ? (
         <div>
           <div className="grid grid-cols-[1fr,auto] gap-2 items-end">
             <div>
@@ -160,7 +159,7 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
             </Button>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
