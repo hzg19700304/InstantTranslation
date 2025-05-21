@@ -12,7 +12,7 @@ export const translateWithDeepSeek = async (
   sourceLanguage: string,
   targetLanguage: string,
   apiKey: string
-): Promise<string> {
+) => {
   if (!apiKey) {
     toast.error("请提供DeepSeek API密钥", {
       description: "需要API密钥才能使用DeepSeek进行翻译"
@@ -88,7 +88,7 @@ export const translateWithDeepSeek = async (
 /**
  * 测试DeepSeek API连接
  */
-export const testDeepSeekConnection = async (apiKey: string): Promise<boolean> => {
+export const testDeepSeekConnection = async (apiKey: string) => {
   if (!apiKey) return false;
   
   try {

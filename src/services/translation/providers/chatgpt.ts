@@ -14,7 +14,7 @@ export const translateWithChatGPT = async (
   sourceLanguage: string,
   targetLanguage: string,
   apiKey: string
-): Promise<string> {
+) => {
   if (!apiKey) {
     toast.error("请提供ChatGPT API密钥", {
       description: "需要API密钥才能使用ChatGPT进行翻译"
@@ -82,7 +82,7 @@ export const translateWithChatGPT = async (
 /**
  * 测试ChatGPT API连接
  */
-export const testChatGPTConnection = async (apiKey: string): Promise<boolean> => {
+export const testChatGPTConnection = async (apiKey: string) => {
   if (!apiKey) return false;
 
   try {
