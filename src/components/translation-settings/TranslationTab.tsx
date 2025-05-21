@@ -68,7 +68,10 @@ export const TranslationTab: React.FC<TranslationTabProps> = ({
     <div className="grid gap-4">
       <LLMProviderSelector 
         currentLLM={currentLLM} 
-        setCurrentLLM={setCurrentLLM} 
+        setCurrentLLM={(provider) => {
+          setCurrentLLM(provider);
+          setConnectionStatus('idle');
+        }} 
       />
       
       <div className="grid gap-4">
@@ -78,6 +81,29 @@ export const TranslationTab: React.FC<TranslationTabProps> = ({
           currentLLM={currentLLM}
           onTest={handleTestConnection}
         />
+        
+        <div className="grid grid-cols-4 items-center gap-4">
+          <div></div>
+          <div className="col-span-3 flex justify-end space-x-2 items-center">
+            <div className="mr-2">
+              {renderConnectionStatus()}
+            </div>
+            <Button 
+              variant="secondary"
+              onClick={handleTestConnection}
+              disabled={isTestingConnection}
+            >
+              {isTestingConnection ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  测试中...
+                </>
+              ) : (
+                "测试连接"
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

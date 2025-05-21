@@ -4,6 +4,7 @@
  */
 
 import { toast } from "sonner";
+import { getLanguageName } from "../utils";
 
 /**
  * 使用ChatGPT进行翻译
@@ -13,7 +14,7 @@ export const translateWithChatGPT = async (
   sourceLanguage: string,
   targetLanguage: string,
   apiKey: string
-): Promise<string> => {
+): Promise<string> {
   if (!apiKey) {
     toast.error("请提供ChatGPT API密钥", {
       description: "需要API密钥才能使用ChatGPT进行翻译"
@@ -22,11 +23,16 @@ export const translateWithChatGPT = async (
   }
 
   try {
+    // 获取语言的完整名称用于提示词
+    const sourceLangName = getLanguageName(sourceLanguage);
+    const targetLangName = getLanguageName(targetLanguage);
+    
     // 记录请求信息用于调试
     console.log("正在使用ChatGPT进行翻译:", {
-      sourceLanguage,
-      targetLanguage,
-      textLength: text.length
+      sourceLanguage: sourceLangName,
+      targetLanguage: targetLangName,
+      textLength: text.length,
+      apiKeyLength: apiKey.length
     });
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -40,7 +46,7 @@ export const translateWithChatGPT = async (
         messages: [
           {
             role: "system",
-            content: `你是一名专业翻译员，请将以下${sourceLanguage}文本准确翻译成${targetLanguage}。只需提供翻译结果，不要添加任何解释或额外内容。`
+            content: `你是一名专业翻译员，请将以下${sourceLangName}文本准确翻译成${targetLangName}。只需提供翻译结果，不要添加任何解释或额外内容。`
           },
           {
             role: "user",

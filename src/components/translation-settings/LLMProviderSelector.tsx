@@ -35,18 +35,18 @@ export const LLMProviderSelector: React.FC<LLMProviderSelectorProps> = ({
               <ChevronDown className="h-4 w-4 ml-2" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setCurrentLLM("huggingface")}>
-              HuggingFace
+          <DropdownMenuContent align="end" className="w-[200px]">
+            <DropdownMenuItem onClick={() => setCurrentLLM("chatgpt")} className="cursor-pointer">
+              ChatGPT
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setCurrentLLM("deepseek")}>
+            <DropdownMenuItem onClick={() => setCurrentLLM("deepseek")} className="cursor-pointer">
               DeepSeek Chat
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setCurrentLLM("gemini")}>
+            <DropdownMenuItem onClick={() => setCurrentLLM("gemini")} className="cursor-pointer">
               Google Gemini
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setCurrentLLM("chatgpt")}>
-              ChatGPT
+            <DropdownMenuItem onClick={() => setCurrentLLM("huggingface")} className="cursor-pointer">
+              HuggingFace
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </DropdownMenuContent>

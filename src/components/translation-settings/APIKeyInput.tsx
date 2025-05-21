@@ -35,17 +35,27 @@ export const APIKeyInput: React.FC<APIKeyInputProps> = ({
       return;
     }
     
-    localStorage.setItem('llm_api_key', apiKeyInput);
-    setApiKey(apiKeyInput);
+    const apiKeyToSave = apiKeyInput.trim();
+    localStorage.setItem('llm_api_key', apiKeyToSave);
+    setApiKey(apiKeyToSave);
     toast.success("API密钥已保存", {
       description: "您的API密钥已保存在本地"
     });
     
     // 如果提供了测试函数，自动测试连接
     if (onTest) {
-      onTest();
+      setTimeout(onTest, 500);
     }
   };
+
+  let placeholderText = "输入API密钥";
+  if (currentLLM === "chatgpt") {
+    placeholderText = "输入OpenAI API密钥(sk-...)";
+  } else if (currentLLM === "deepseek") {
+    placeholderText = "输入DeepSeek API密钥";
+  } else if (currentLLM === "gemini") {
+    placeholderText = "输入Google AI API密钥";
+  }
   
   return (
     <>
@@ -59,7 +69,7 @@ export const APIKeyInput: React.FC<APIKeyInputProps> = ({
           onChange={(e) => setApiKeyInput(e.target.value)}
           className="col-span-3"
           type="password"
-          placeholder={`输入${getLLMDisplayName(currentLLM)}的API密钥`}
+          placeholder={placeholderText}
         />
       </div>
       
