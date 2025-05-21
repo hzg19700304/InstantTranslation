@@ -155,31 +155,29 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
       
       {showApiKeyInput && (
         <div>
-          <div className="grid grid-cols-[1fr,auto] gap-2 items-end">
-            <div>
-              <Label htmlFor="speechApiKey" className="text-sm mb-1 block">
-                OpenAI API密钥
-              </Label>
-              <Input
-                id="speechApiKey"
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="请输入OpenAI API密钥"
-                type="password"
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                需要OpenAI API密钥才能使用这些模型
-              </div>
-            </div>
+          <Label htmlFor="speechApiKey" className="text-sm mb-1 block">
+            OpenAI API密钥
+          </Label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="speechApiKey"
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              placeholder="请输入OpenAI API密钥"
+              type="password"
+              className="flex-1"
+            />
             <Button 
               onClick={handleSaveApiKey} 
               disabled={isTestingConnection}
-              size="sm"
-              className="min-w-[80px]"
+              size="default"
             >
-              {isTestingConnection ? '保存中...' : '保存密钥'}
+              保存密钥
               {renderConnectionStatus()}
             </Button>
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            需要OpenAI API密钥才能使用这些模型
           </div>
         </div>
       )}
