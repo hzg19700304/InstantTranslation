@@ -53,9 +53,10 @@ const TranslationCard = ({
           placeholder={isSource ? "请输入要翻译的文字..." : "翻译结果将显示在这里..."}
           className={cn(
             "min-h-[120px] border-translator-primary/10 focus:border-translator-primary",
-            isSource && "bg-translator-secondary/50",
-            !isSource && !isComplete && "text-gray-500 bg-white", // Incomplete translations in gray
-            !isSource && isComplete && "text-blue-700 bg-white" // Complete translations in blue
+            isSource ? "bg-translator-secondary/50" : "",
+            !isSource && "bg-white",
+            !isSource && !isComplete && "text-gray-500",
+            !isSource && isComplete && "text-blue-700"
           )}
           readOnly={!isSource}
         />
