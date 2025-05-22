@@ -111,11 +111,8 @@ export const useTranslationLogic = ({
         }
       }
       
-      // 首次显示时，先添加一个未完成状态的翻译到历史记录
-      if (!isIncremental || isFirstTranslationRef.current) {
-        // 先添加一个初步翻译结果（未确定状态）
-        addToTranslationHistory(sourceText, "翻译中...", false);
-      }
+      // 移除首次显示时添加的未完成状态翻译历史
+      // 不再添加带有"翻译中..."的临时条目到历史记录中
       
       // 执行翻译并获取结果
       const translationResult = await processIncrementalTranslation(
@@ -127,7 +124,7 @@ export const useTranslationLogic = ({
       // 处理翻译结果
       if (translationResult === "[翻译失败]") {
         setTranslationError("翻译服务暂时不可用，请稍后再试");
-        updateLatestHistoryItemStatus(false); // 标记为未完成的翻译
+        // 不更新历史记录状态，因为我们不再添加未完成的翻译
       } else {
         setTranslationError("");
         
@@ -142,13 +139,9 @@ export const useTranslationLogic = ({
           // 设置翻译文本，显示给用户
           setTranslatedText(translationResult);
           
-          // 更新历史记录中的最新翻译（如果是增量翻译则更新，否则添加新记录）
-          if (isIncremental) {
-            updateLatestHistoryItemStatus(true);
-          } else {
-            // 更新翻译历史记录中的初步结果为最终结果
-            addToTranslationHistory(sourceText, translationResult, true);
-          }
+          // 只有当翻译完成后，才添加到历史记录
+          // 直接添加完成的翻译结果到历史记录
+          addToTranslationHistory(sourceText, translationResult, true);
           
           // 更新最后翻译的文本引用
           lastTranslatedTextRef.current = sourceText;
@@ -158,7 +151,7 @@ export const useTranslationLogic = ({
     } catch (error) {
       console.error("Translation error:", error);
       setTranslationError("翻译服务连接失败");
-      updateLatestHistoryItemStatus(false); // 标记为未完成的翻译
+      // 不再更新历史记录的状态
       toast.error("翻译失败", {
         description: "无法完成翻译，请稍后再试或检查API密钥"
       });

@@ -37,10 +37,9 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
               {/* 源文本 */}
               <div className="mb-1 text-gray-700 font-normal">{item.sourceText}</div>
               
-              {/* 翻译文本 - 根据是否确定显示不同样式 */}
+              {/* 翻译文本 - 只显示完成的翻译 */}
               <div className={cn(
-                "text-gray-800",
-                item.isComplete ? "font-medium" : "text-gray-500 italic"
+                "text-gray-800 font-medium"
               )}>
                 {item.translatedText}
               </div>
