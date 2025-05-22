@@ -16,7 +16,7 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
   sourceLanguage,
   targetLanguage
 }) => {
-  // 过滤掉空的、过短的或不完整的历史记录
+  // 使用更智能的NLP过滤逻辑，过滤掉空的、过短的或不完整的历史记录
   const filteredHistory = history.filter(item => {
     // 基本过滤条件
     const isLongEnough = item.sourceText.trim().length > 8; 
@@ -26,7 +26,7 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
                        !item.translatedText.includes("Error:") &&
                        !item.translatedText.includes("[翻译失败]");
     
-    // 使用完整性检查函数检查源文本是否是完整的句子
+    // 使用增强的完整性检查函数检查源文本是否是完整的句子
     const isSourceComplete = isInputComplete(item.sourceText, 
       sourceLanguage === "中文" ? "zh" : "en");
     
