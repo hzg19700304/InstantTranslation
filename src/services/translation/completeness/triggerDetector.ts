@@ -41,6 +41,8 @@ export function shouldTranslate(
   } else {
     pauseCounter = 0;
     lastInputText = sourceText;
+    // 重置最后一次检查时间，用于计时器
+    lastInputCheckTime = currentTime;
   }
   
   // 如果用户停止输入超过3次检查，认为可能已经完成输入
@@ -52,10 +54,11 @@ export function shouldTranslate(
     return false;
   }
   
-  // 文本太短不翻译
-  if (sourceText.trim().length < 2) {
-    lastInputCheckTime = currentTime;
-    consecutiveCompleteCount = 0;
+  // 文本太短不翻译，但如果文本长度大于等于1并且用户已经停顿超过1秒，也考虑翻译
+  const isShortText = sourceText.trim().length < 2;
+  const userPausedLongEnough = (currentTime - lastInputCheckTime) >= 1000; // 1秒暂停触发
+  
+  if (isShortText && !userPausedLongEnough) {
     return false;
   }
   
@@ -106,15 +109,14 @@ export function shouldTranslate(
     return false;
   }
   
-  // 如果文本不完整，但用户停止输入超过一定次数，也可以触发翻译
-  if (userPausedTyping && sourceText.trim().length >= 6) {
-    console.log("用户停顿触发翻译:", { 停顿次数: pauseCounter, 文本: sourceText });
+  // 如果文本不完整，但用户停止输入超过1秒，也可以触发翻译
+  if (userPausedLongEnough && sourceText.trim().length > 0) {
+    console.log("用户停顿触发翻译:", { 停顿时长: (currentTime - lastInputCheckTime), 文本: sourceText });
     pauseCounter = 0;
     return true;
   }
   
   // 如果文本不完整，重置连续完整计数，更新时间戳
   consecutiveCompleteCount = 0;
-  lastInputCheckTime = currentTime;
   return false;
 }
