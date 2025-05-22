@@ -4,7 +4,6 @@ import { ArrowDown, Repeat, Trash2, History, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TranslationCard from "@/components/TranslationCard";
 import { Language } from "@/types/translation";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useVoiceInput } from "@/hooks/speech/useVoiceInput";
 import { TranslationHistoryItem } from "@/hooks/translation/useTranslationState";
 import TranslationHistory from "./TranslationHistory";
@@ -55,11 +54,12 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
     handleClearTranslation();
   };
 
-  const [showHistory, setShowHistory] = React.useState(false);
+  // 历史记录默认始终显示
+  const [showHistory, setShowHistory] = React.useState(true);
 
   return (
     <div className="space-y-4">
-      {/* 历史记录显示区域 - 移到顶部 */}
+      {/* 历史记录显示区域 - 始终在顶部显示 */}
       {showHistory && translationHistory.length > 0 && (
         <TranslationHistory 
           history={translationHistory}
@@ -73,18 +73,6 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
         value={sourceText}
         onChange={setSourceText}
         isSource={true}
-      />
-      
-      <div className="flex justify-center">
-        <div className="bg-white rounded-full p-1.5 shadow-sm">
-          <ArrowDown size={16} className="text-translator-primary/60" />
-        </div>
-      </div>
-      
-      <TranslationCard
-        language={targetLanguage}
-        value={translatedText}
-        className={isTranslating ? "opacity-70" : ""}
       />
       
       {/* 翻译错误提示和重试按钮 */}
@@ -104,7 +92,7 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
       
       {/* 功能按钮区域 */}
       <div className="flex justify-between mt-2">
-        {/* 历史记录按钮 */}
+        {/* 隐藏/显示历史按钮 */}
         <Button
           variant="outline"
           size="sm"
@@ -128,14 +116,14 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
             </Button>
           )}
           
-          {(sourceText || translatedText) && (
+          {sourceText && (
             <Button
               variant="outline"
               size="sm"
               onClick={onClearTranslation}
               className="border-translator-primary/20 hover:bg-translator-secondary"
             >
-              <Trash2 size={14} className="mr-1.5"/> 清空翻译
+              <Trash2 size={14} className="mr-1.5"/> 清空输入
             </Button>
           )}
         </div>
