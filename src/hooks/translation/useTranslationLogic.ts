@@ -72,6 +72,11 @@ export const useTranslationLogic = ({
       return;
     }
     
+    // 检查是否是非常短的文本（可能是用户正在输入中）
+    if (sourceText.trim().length <= 3) {
+      return; // 不触发翻译，等待用户输入更多
+    }
+    
     if (!llmApiKey) {
       setTranslationError("未配置API密钥，请在设置中配置");
       toast.error("翻译需要API密钥", {
@@ -111,8 +116,7 @@ export const useTranslationLogic = ({
         }
       }
       
-      // 移除首次显示时添加的未完成状态翻译历史
-      // 不再添加带有"翻译中..."的临时条目到历史记录中
+      // 不再添加未完成的翻译到历史记录中
       
       // 执行翻译并获取结果
       const translationResult = await processIncrementalTranslation(
@@ -124,7 +128,6 @@ export const useTranslationLogic = ({
       // 处理翻译结果
       if (translationResult === "[翻译失败]") {
         setTranslationError("翻译服务暂时不可用，请稍后再试");
-        // 不更新历史记录状态，因为我们不再添加未完成的翻译
       } else {
         setTranslationError("");
         
@@ -139,9 +142,16 @@ export const useTranslationLogic = ({
           // 设置翻译文本，显示给用户
           setTranslatedText(translationResult);
           
-          // 只有当翻译完成后，才添加到历史记录
-          // 直接添加完成的翻译结果到历史记录
-          addToTranslationHistory(sourceText, translationResult, true);
+          // 检查翻译结果是否有意义 (避免保存不完整或无意义的翻译)
+          const minSourceLength = 3; // 最小原文长度
+          const minTranslationLength = 2; // 最小翻译结果长度
+          
+          if (sourceText.trim().length > minSourceLength && 
+              translationResult.trim().length > minTranslationLength && 
+              !translationResult.includes("翻译中...")) {
+            // 只有当翻译完成且结果有意义时，才添加到历史记录
+            addToTranslationHistory(sourceText, translationResult, true);
+          }
           
           // 更新最后翻译的文本引用
           lastTranslatedTextRef.current = sourceText;
@@ -151,7 +161,6 @@ export const useTranslationLogic = ({
     } catch (error) {
       console.error("Translation error:", error);
       setTranslationError("翻译服务连接失败");
-      // 不再更新历史记录的状态
       toast.error("翻译失败", {
         description: "无法完成翻译，请稍后再试或检查API密钥"
       });
@@ -172,7 +181,6 @@ export const useTranslationLogic = ({
     setTranslationError, 
     processIncrementalTranslation,
     addToTranslationHistory,
-    updateLatestHistoryItemStatus,
     llmApiKey
   ]);
   
