@@ -96,8 +96,8 @@ export const useTranslationPerformer = ({
     setTranslationError("");
     translationInProgressRef.current = true;
     
-    // 增加延迟，给用户更多时间完成输入
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // 减少延迟，更快开始翻译
+    await new Promise(resolve => setTimeout(resolve, 400));
     
     // 再次检查源文本是否已经改变
     if (currentSourceTextRef.current !== sourceText) {
@@ -141,14 +141,14 @@ export const useTranslationPerformer = ({
           setTranslatedText(translationResult);
           
           // 检查翻译结果是否有意义
-          const minSourceLength = 8;
-          const minTranslationLength = 5;
+          const minSourceLength = 6; // 降低源文本长度要求
+          const minTranslationLength = 4; // 降低翻译结果长度要求
           
           // 检查是否含有明显的不完整翻译标志
           const hasIncompleteMarkers = 
             translationResult.includes("翻译中...") || 
             translationResult.includes("...") || 
-            translationResult.length < sourceText.length / 5;
+            translationResult.length < sourceText.length / 6;
           
           if (sourceText.trim().length > minSourceLength && 
               translationResult.trim().length > minTranslationLength && 
