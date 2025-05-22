@@ -27,7 +27,7 @@ export const useTranslationState = ({
   const [translationError, setTranslationError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   
-  // 翻译历史记录，带有翻译状态标记
+  // 翻译历史记录，带有翻译状态标记，增加存储数量至50条
   const [translationHistory, setTranslationHistory] = useState<TranslationHistoryItem[]>([]);
   
   // 翻译相关引用
@@ -49,7 +49,7 @@ export const useTranslationState = ({
           timestamp: new Date(),
           isComplete
         },
-        ...prev.slice(0, 19) // 保留最近的20条记录
+        ...prev.slice(0, 49) // 保留最近的50条记录
       ]);
     }
   };

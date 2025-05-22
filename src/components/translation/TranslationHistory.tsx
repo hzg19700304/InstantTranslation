@@ -20,7 +20,7 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
   }
 
   return (
-    <div className="mt-4 bg-white rounded-lg shadow-sm border border-translator-primary/10 overflow-hidden">
+    <div className="mb-4 bg-white rounded-lg shadow-sm border border-translator-primary/10 overflow-hidden">
       <ScrollArea className="max-h-[300px]">
         <div className="p-3 space-y-3">
           {history.map((item, index) => (

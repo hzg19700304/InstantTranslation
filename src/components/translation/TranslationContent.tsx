@@ -59,6 +59,15 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* 历史记录显示区域 - 移到顶部 */}
+      {showHistory && translationHistory.length > 0 && (
+        <TranslationHistory 
+          history={translationHistory}
+          sourceLanguage={sourceLanguage.name}
+          targetLanguage={targetLanguage.name}
+        />
+      )}
+      
       <TranslationCard
         language={sourceLanguage}
         value={sourceText}
@@ -131,15 +140,6 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
           )}
         </div>
       </div>
-      
-      {/* 历史记录显示区域 */}
-      {showHistory && translationHistory.length > 0 && (
-        <TranslationHistory 
-          history={translationHistory}
-          sourceLanguage={sourceLanguage.name}
-          targetLanguage={targetLanguage.name}
-        />
-      )}
     </div>
   );
 };
