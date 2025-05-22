@@ -17,7 +17,7 @@ export const isEnglishSentenceComplete = (text: string): boolean => {
   const words = trimmedText.split(/\s+/);
   const lastWord = words[words.length - 1].toLowerCase().replace(/[^\w]/g, '');
   
-  // 检查最后一个单词是否是连接词或介词
+  // 检查最后一个单词是否是连接词或介词，这通常表示句子不完整
   const endsWithConjunctionOrPreposition = 
     ENGLISH_CONJUNCTIONS.includes(lastWord) || 
     ENGLISH_PREPOSITIONS.includes(lastWord);
@@ -35,15 +35,22 @@ export const isEnglishSentenceComplete = (text: string): boolean => {
   const hasMinimumWords = wordCount >= 3; // 大多数完整句子至少有3个单词
   
   // 检查语法结构 - 确保有主语和谓语 (简单检查)
-  // 大多数英文句子应该至少有一个主语和一个动词
   const containsVerb = /\b(am|is|are|was|were|be|being|been|do|does|did|have|has|had|can|could|will|would|shall|should|may|might|must|ought)\b/i.test(trimmedText) || 
                       /\b\w+(?:s|ed|ing)\b/i.test(trimmedText);
   
   // 语义完整性检查 - 即使没有句号，如果句子结构完整也应该被认为是完整的
   const isSemanticComplete = hasMinimumWords && containsVerb && !endsWithConjunctionOrPreposition;
   
+  // 检查是否是截断的单词 - 如果最后一个单词非常短，并且不是常见的短单词
+  const commonShortWords = ['a', 'an', 'the', 'to', 'of', 'in', 'on', 'at', 'by', 'i', 'it', 'he', 'we', 'no', 'yes', 'so'];
+  const lastWordIsTruncated = lastWord.length <= 1 && !commonShortWords.includes(lastWord);
+  
+  // 特殊检查: 如果最后一个词是单个字母（可能是被截断的单词），则句子不完整
+  if (lastWordIsTruncated) {
+    return false;
+  }
+  
   // 结合多种条件判断句子完整性
-  return endsWithProperPunctuation || 
-         (isSemanticComplete && !hasUnclosedElements) || 
-         (wordCount >= 4 && !endsWithConjunctionOrPreposition && !hasUnclosedElements);
+  return (endsWithProperPunctuation && !hasUnclosedElements) || 
+         (isSemanticComplete && !hasUnclosedElements && wordCount >= 4);
 };

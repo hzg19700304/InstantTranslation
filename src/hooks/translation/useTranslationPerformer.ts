@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import { Language } from "@/types/translation";
 import { LLMProvider } from "@/services/translation/types";
-import { shouldTranslate } from "@/services/translation/completeness";
+import { shouldTranslate, isInputComplete } from "@/services/translation/completeness";
 import { useTranslationCore } from "./useTranslationCore";
 
 interface UseTranslationPerformerProps {
@@ -111,10 +111,14 @@ export const useTranslationPerformer = ({
       let textToTranslate = sourceText;
       let isIncremental = false;
       
-      console.log("进行完整翻译:", { 
+      console.log("进行翻译:", { 
         文本: textToTranslate,
         语言: sourceLanguage.code
       });
+      
+      // 翻译前检查输入是否完整
+      const isInputCompleteFlag = isInputComplete(sourceText, sourceLanguage.code);
+      console.log(`输入完整性检查结果: ${isInputCompleteFlag ? '完整' : '不完整'}`);
       
       // 执行翻译并获取结果
       const translationResult = await processIncrementalTranslation(
@@ -153,8 +157,8 @@ export const useTranslationPerformer = ({
           if (sourceText.trim().length > minSourceLength && 
               translationResult.trim().length > minTranslationLength && 
               !hasIncompleteMarkers) {
-            // 只有当翻译完成且结果有意义时，才添加到历史记录
-            addToTranslationHistory(sourceText, translationResult, true);
+            // 只有当翻译结果有意义时才添加到历史记录，但标记是否完整
+            addToTranslationHistory(sourceText, translationResult, isInputCompleteFlag);
           }
           
           // 更新最后翻译的文本引用

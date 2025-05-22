@@ -25,10 +25,18 @@ export function isInputComplete(text: string, languageCode: string): boolean {
   if (languageCode === 'zh') {
     return isChineseSentenceComplete(text);
   } else if (languageCode === 'en') {
-    return isEnglishSentenceComplete(text);
+    // 英文句子完整性检查 - 更严格的检查
+    const result = isEnglishSentenceComplete(text);
+    
+    // 特殊情况检查 - 如果文本太短或明显不完整
+    // 例如："i see you want to enhance t" 明显是不完整的
+    if (text.trim().length < 15 && !result) {
+      return false;
+    }
+    
+    return result;
   }
   
   // 通用检查 - 如果没有语言特定规则，检查是否是合理长度
-  // 不再强制要求必须以句号结束
   return text.trim().length >= 6;
 }
