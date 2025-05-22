@@ -1,6 +1,6 @@
 
 import React from "react";
-import { ArrowDown, Repeat, Trash2, History, RefreshCw } from "lucide-react";
+import { Repeat, Trash2, History, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TranslationCard from "@/components/TranslationCard";
 import { Language } from "@/types/translation";
@@ -22,7 +22,7 @@ interface TranslationContentProps {
   handleClearHistory?: () => void;
   currentSpeechModel: import("@/components/speech/VoiceModelSelector").SpeechModel;
   speechApiKey: string;
-  isTranslationComplete?: boolean; // New prop to indicate if translation is complete
+  isTranslationComplete?: boolean;
 }
 
 const TranslationContent: React.FC<TranslationContentProps> = ({
@@ -39,7 +39,7 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
   handleClearHistory = () => {},
   currentSpeechModel,
   speechApiKey,
-  isTranslationComplete = true // Default to true for backward compatibility
+  isTranslationComplete = true
 }) => {
   const { resetVoiceInputRefs } = useVoiceInput({
     sourceText,
@@ -70,6 +70,7 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
         />
       )}
       
+      {/* 只保留源语言输入卡片 */}
       <TranslationCard
         language={sourceLanguage}
         value={sourceText}
@@ -77,13 +78,7 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
         isSource={true}
       />
       
-      {/* 目标语言卡片 - 添加完整性指示 */}
-      <TranslationCard
-        language={targetLanguage}
-        value={translatedText}
-        isSource={false}
-        isComplete={isTranslationComplete && !isTranslating} // Only complete if not currently translating and marked as complete
-      />
+      {/* 移除目标语言卡片 */}
       
       {/* 翻译错误提示和重试按钮 */}
       {translationError && (
