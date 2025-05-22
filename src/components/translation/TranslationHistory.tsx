@@ -57,8 +57,11 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
               {/* 源文本 */}
               <div className="mb-1 text-gray-700 font-normal">{item.sourceText}</div>
               
-              {/* 翻译文本 - 只显示完整翻译 */}
-              <div className="text-gray-800 font-medium">
+              {/* 翻译文本 - 根据完整性使用不同颜色 */}
+              <div className={cn(
+                "font-medium", 
+                item.isComplete ? "text-blue-700" : "text-gray-500"
+              )}>
                 {item.translatedText}
               </div>
             </div>

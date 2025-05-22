@@ -59,6 +59,11 @@ export const useTranslation = ({
     isFirstTranslationRef: state.isFirstTranslationRef
   });
 
+  // 判断翻译是否完整 (不在翻译中且已标记为完整)
+  const isTranslationComplete = !state.isTranslating && state.translationHistory.length > 0 && 
+    (state.translationHistory[0]?.sourceText === state.sourceText) && 
+    state.translationHistory[0]?.isComplete;
+
   return {
     // 状态导出
     sourceText: state.sourceText,
@@ -71,6 +76,9 @@ export const useTranslation = ({
     setTargetLanguage: state.setTargetLanguage,
     isTranslating: state.isTranslating,
     translationError: state.translationError,
+    
+    // 翻译完整性状态
+    isTranslationComplete,
     
     // 翻译历史
     translationHistory: state.translationHistory,

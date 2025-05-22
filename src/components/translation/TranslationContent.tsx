@@ -22,6 +22,7 @@ interface TranslationContentProps {
   handleClearHistory?: () => void;
   currentSpeechModel: import("@/components/speech/VoiceModelSelector").SpeechModel;
   speechApiKey: string;
+  isTranslationComplete?: boolean; // New prop to indicate if translation is complete
 }
 
 const TranslationContent: React.FC<TranslationContentProps> = ({
@@ -37,7 +38,8 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
   handleClearTranslation = () => {},
   handleClearHistory = () => {},
   currentSpeechModel,
-  speechApiKey
+  speechApiKey,
+  isTranslationComplete = true // Default to true for backward compatibility
 }) => {
   const { resetVoiceInputRefs } = useVoiceInput({
     sourceText,
@@ -73,6 +75,14 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
         value={sourceText}
         onChange={setSourceText}
         isSource={true}
+      />
+      
+      {/* 目标语言卡片 - 添加完整性指示 */}
+      <TranslationCard
+        language={targetLanguage}
+        value={translatedText}
+        isSource={false}
+        isComplete={isTranslationComplete && !isTranslating} // Only complete if not currently translating and marked as complete
       />
       
       {/* 翻译错误提示和重试按钮 */}

@@ -10,6 +10,7 @@ interface TranslationCardProps {
   value: string;
   onChange?: (value: string) => void;
   isSource?: boolean;
+  isComplete?: boolean; // New prop to indicate if translation is complete
   className?: string;
 }
 
@@ -18,6 +19,7 @@ const TranslationCard = ({
   value, 
   onChange, 
   isSource = false, 
+  isComplete = true, // Default to true for backward compatibility
   className 
 }: TranslationCardProps) => {
   return (
@@ -42,6 +44,8 @@ const TranslationCard = ({
           placeholder={isSource ? "请输入要翻译的文字..." : "翻译结果将显示在这里..."}
           className={cn(
             "min-h-[120px] border-translator-primary/10 bg-translator-secondary/50 focus:border-translator-primary",
+            !isSource && !isComplete && "text-gray-500", // Incomplete translations in gray
+            !isSource && isComplete && "text-blue-700", // Complete translations in blue
             !isSource && "bg-white"
           )}
           readOnly={!isSource}

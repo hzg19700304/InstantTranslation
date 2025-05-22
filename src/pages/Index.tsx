@@ -48,7 +48,8 @@ const Index = () => {
     clearHistory,
     clearTranslation,
     handleSwapLanguages,
-    handleRetryTranslation
+    handleRetryTranslation,
+    isTranslationComplete // 新增翻译完整性状态
   } = useTranslation({ 
     initialSourceLanguage: LANGUAGES[1], // 英语
     initialTargetLanguage: LANGUAGES[0], // 中文
@@ -110,7 +111,7 @@ const Index = () => {
         currentLLM={currentLLM}
       />
 
-      {/* 翻译卡片区域 */}
+      {/* 翻译卡片区域 - 传递翻译完整性状态 */}
       <TranslationContent
         sourceLanguage={sourceLanguage}
         targetLanguage={targetLanguage}
@@ -125,6 +126,7 @@ const Index = () => {
         handleClearHistory={clearHistory}
         currentSpeechModel={currentSpeechModel}
         speechApiKey={speechApiKey}
+        isTranslationComplete={isTranslationComplete} // 传递翻译完整性标志
       />
 
       {/* 功能按钮 */}
