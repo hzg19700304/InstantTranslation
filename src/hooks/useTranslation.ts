@@ -46,6 +46,7 @@ export const useTranslation = ({
     retryCount: state.retryCount,
     setRetryCount: state.setRetryCount,
     addToTranslationHistory: state.addToTranslationHistory,
+    updateLatestHistoryItemStatus: state.updateLatestHistoryItemStatus,
     
     // 引用
     lastTranslatedTextRef: state.lastTranslatedTextRef,
@@ -72,6 +73,7 @@ export const useTranslation = ({
     
     // 翻译历史
     translationHistory: state.translationHistory,
+    clearHistory: state.clearHistory,
     
     // 清空翻译
     clearTranslation: state.clearTranslation,

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { LANGUAGES } from "@/constants/languages";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -44,6 +45,7 @@ const Index = () => {
     isTranslating,
     translationError,
     translationHistory,
+    clearHistory,
     clearTranslation,
     handleSwapLanguages,
     handleRetryTranslation
@@ -120,6 +122,7 @@ const Index = () => {
         handleRetryTranslation={handleRetryTranslation}
         translationHistory={translationHistory}
         handleClearTranslation={clearTranslation}
+        handleClearHistory={clearHistory}
         currentSpeechModel={currentSpeechModel}
         speechApiKey={speechApiKey}
       />

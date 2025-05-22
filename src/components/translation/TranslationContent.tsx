@@ -1,16 +1,13 @@
+
 import React from "react";
-import { ArrowDown, Repeat, Trash2 } from "lucide-react";
+import { ArrowDown, Repeat, Trash2, History, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TranslationCard from "@/components/TranslationCard";
 import { Language } from "@/types/translation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useVoiceInput } from "@/hooks/speech/useVoiceInput";
-
-interface TranslationHistoryItem {
-  sourceText: string;
-  translatedText: string;
-  timestamp: Date;
-}
+import { TranslationHistoryItem } from "@/hooks/translation/useTranslationState";
+import TranslationHistory from "./TranslationHistory";
 
 interface TranslationContentProps {
   sourceLanguage: Language;
@@ -23,6 +20,7 @@ interface TranslationContentProps {
   handleRetryTranslation: () => void;
   translationHistory?: TranslationHistoryItem[];
   handleClearTranslation?: () => void;
+  handleClearHistory?: () => void;
   currentSpeechModel: import("@/components/speech/VoiceModelSelector").SpeechModel;
   speechApiKey: string;
 }
@@ -38,6 +36,7 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
   handleRetryTranslation,
   translationHistory = [],
   handleClearTranslation = () => {},
+  handleClearHistory = () => {},
   currentSpeechModel,
   speechApiKey
 }) => {
@@ -55,6 +54,8 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
     resetVoiceInputRefs('');
     handleClearTranslation();
   };
+
+  const [showHistory, setShowHistory] = React.useState(false);
 
   return (
     <div className="space-y-4">
@@ -92,18 +93,52 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
         </div>
       )}
       
-      {/* 清空翻译按钮 */}
-      {(sourceText || translatedText) && (
-        <div className="flex justify-end mt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onClearTranslation}
-            className="border-translator-primary/20 hover:bg-translator-secondary"
-          >
-            <Trash2 size={14} className="mr-1.5"/> 清空翻译
-          </Button>
+      {/* 功能按钮区域 */}
+      <div className="flex justify-between mt-2">
+        {/* 历史记录按钮 */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowHistory(!showHistory)}
+          className="border-translator-primary/20 hover:bg-translator-secondary"
+        >
+          <History size={14} className="mr-1.5"/> 
+          {showHistory ? "隐藏历史" : "显示历史"}
+        </Button>
+
+        {/* 清空按钮 */}
+        <div className="flex gap-2">
+          {showHistory && translationHistory.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearHistory}
+              className="border-translator-primary/20 hover:bg-translator-secondary"
+            >
+              <RefreshCw size={14} className="mr-1.5"/> 清空历史
+            </Button>
+          )}
+          
+          {(sourceText || translatedText) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClearTranslation}
+              className="border-translator-primary/20 hover:bg-translator-secondary"
+            >
+              <Trash2 size={14} className="mr-1.5"/> 清空翻译
+            </Button>
+          )}
         </div>
+      </div>
+      
+      {/* 历史记录显示区域 */}
+      {showHistory && translationHistory.length > 0 && (
+        <TranslationHistory 
+          history={translationHistory}
+          sourceLanguage={sourceLanguage.name}
+          targetLanguage={targetLanguage.name}
+        />
       )}
     </div>
   );
