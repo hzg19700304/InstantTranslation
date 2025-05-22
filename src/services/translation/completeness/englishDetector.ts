@@ -41,16 +41,26 @@ export const isEnglishSentenceComplete = (text: string): boolean => {
   // 语义完整性检查 - 即使没有句号，如果句子结构完整也应该被认为是完整的
   const isSemanticComplete = hasMinimumWords && containsVerb && !endsWithConjunctionOrPreposition;
   
-  // 检查是否是截断的单词 - 如果最后一个单词非常短，并且不是常见的短单词
-  const commonShortWords = ['a', 'an', 'the', 'to', 'of', 'in', 'on', 'at', 'by', 'i', 'it', 'he', 'we', 'no', 'yes', 'so'];
-  const lastWordIsTruncated = lastWord.length <= 1 && !commonShortWords.includes(lastWord);
+  // 检查是否是截断的单词或短语
+  const isLastWordTruncated = lastWord.length <= 2 && !['a', 'an', 'i', 'be', 'do', 'to', 'so', 'no', 'of', 'he', 'by', 'we'].includes(lastWord);
   
-  // 特殊检查: 如果最后一个词是单个字母（可能是被截断的单词），则句子不完整
-  if (lastWordIsTruncated) {
+  // 检查是否可能是被截断的句子
+  const isPossiblyTruncated = 
+    trimmedText.endsWith('and') || 
+    trimmedText.endsWith('or') || 
+    trimmedText.endsWith('but') ||
+    trimmedText.endsWith('to') ||
+    trimmedText.endsWith('the');
+  
+  // 检查常见的不完整词组结尾
+  const endsWithIncompletePhrase = /\b(in order|as well as|such as|more than|rather than|due to|according to|based on|refers to|related to|compared to|contrary to|similar to|for example|in terms of|in other words|on the other hand)\s*$/.test(trimmedText);
+  
+  // 如果句子以连续词、介词或明显不完整的短语结尾，则认为不完整
+  if (endsWithConjunctionOrPreposition || isPossiblyTruncated || isLastWordTruncated || endsWithIncompletePhrase) {
     return false;
   }
   
   // 结合多种条件判断句子完整性
   return (endsWithProperPunctuation && !hasUnclosedElements) || 
-         (isSemanticComplete && !hasUnclosedElements && wordCount >= 4);
+         (isSemanticComplete && !hasUnclosedElements && wordCount >= 4 && !isPossiblyTruncated);
 };

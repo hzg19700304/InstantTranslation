@@ -27,7 +27,7 @@ export const useTranslationState = ({
   const [translationError, setTranslationError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   
-  // 翻译历史记录，带有翻译状态标记，增加存储数量至50条
+  // 翻译历史记录，带有翻译状态标记，减少存储数量至10条
   const [translationHistory, setTranslationHistory] = useState<TranslationHistoryItem[]>([]);
   
   // 翻译相关引用
@@ -42,15 +42,27 @@ export const useTranslationState = ({
   // 添加一个新的翻译结果到历史记录，带有确定性标记
   const addToTranslationHistory = (sourceText: string, translatedText: string, isComplete: boolean = true) => {
     if (sourceText && translatedText && translatedText !== "[翻译失败]") {
-      setTranslationHistory(prev => [
-        {
-          sourceText,
-          translatedText,
-          timestamp: new Date(),
-          isComplete
-        },
-        ...prev.slice(0, 49) // 保留最近的50条记录
-      ]);
+      // 检查是否已经存在非常相似的翻译，避免重复添加
+      const isDuplicate = translationHistory.some(item =>
+        // 如果源文本和翻译结果都非常相似，就认为是重复的
+        (item.sourceText === sourceText || 
+         (item.sourceText.length > 10 && sourceText.includes(item.sourceText))) &&
+        (item.translatedText === translatedText || 
+         (item.translatedText.length > 10 && translatedText.includes(item.translatedText)))
+      );
+      
+      // 只有不是重复的翻译才添加到历史记录
+      if (!isDuplicate) {
+        setTranslationHistory(prev => [
+          {
+            sourceText,
+            translatedText,
+            timestamp: new Date(),
+            isComplete
+          },
+          ...prev.slice(0, 9) // 只保留最近的10条记录
+        ]);
+      }
     }
   };
   

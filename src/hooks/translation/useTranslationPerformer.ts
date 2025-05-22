@@ -68,6 +68,10 @@ export const useTranslationPerformer = ({
       return;
     }
     
+    // 先判断源文本是否完整，并将结果保存下来供后续使用
+    const isInputCompleteFlag = isInputComplete(sourceText, sourceLanguage.code);
+    console.log(`输入完整性检查结果: ${isInputCompleteFlag ? '完整' : '不完整'}`);
+    
     // 使用智能完整性判断逻辑
     if (!shouldTranslate(
       sourceText, 
@@ -113,12 +117,9 @@ export const useTranslationPerformer = ({
       
       console.log("进行翻译:", { 
         文本: textToTranslate,
-        语言: sourceLanguage.code
+        语言: sourceLanguage.code,
+        是否完整输入: isInputCompleteFlag
       });
-      
-      // 翻译前检查输入是否完整
-      const isInputCompleteFlag = isInputComplete(sourceText, sourceLanguage.code);
-      console.log(`输入完整性检查结果: ${isInputCompleteFlag ? '完整' : '不完整'}`);
       
       // 执行翻译并获取结果
       const translationResult = await processIncrementalTranslation(
@@ -154,10 +155,16 @@ export const useTranslationPerformer = ({
             translationResult.includes("...") || 
             translationResult.length < sourceText.length / 6;
           
-          if (sourceText.trim().length > minSourceLength && 
-              translationResult.trim().length > minTranslationLength && 
-              !hasIncompleteMarkers) {
-            // 只有当翻译结果有意义时才添加到历史记录，但标记是否完整
+          // 判断翻译是否有足够价值添加到历史记录
+          const isValueableTranslation = 
+            sourceText.trim().length > minSourceLength && 
+            translationResult.trim().length > minTranslationLength && 
+            !hasIncompleteMarkers &&
+            // 翻译结果至少要有源文本长度的15%
+            translationResult.length >= sourceText.length * 0.15;
+          
+          if (isValueableTranslation) {
+            // 只有当翻译结果有足够价值时才添加到历史记录，并标记是否完整
             addToTranslationHistory(sourceText, translationResult, isInputCompleteFlag);
           }
           

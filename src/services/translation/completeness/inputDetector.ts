@@ -21,16 +21,40 @@ export function isInputComplete(text: string, languageCode: string): boolean {
     return false;
   }
   
+  // 检查是否有明显的未完成单词 (词尾被截断)
+  if (text.endsWith(' ') || /[a-z][A-Z]$/.test(text)) {
+    return false;
+  }
+  
+  // 检测输入中有未闭合标点的情况
+  const openQuotes = (text.match(/"/g) || []).length;
+  const openParentheses = (text.match(/\(/g) || []).length;
+  const closeParentheses = (text.match(/\)/g) || []).length;
+  
+  if ((openQuotes % 2 !== 0) || (openParentheses !== closeParentheses)) {
+    return false;
+  }
+  
   // 根据语言应用相应的完整性检查
   if (languageCode === 'zh') {
     return isChineseSentenceComplete(text);
   } else if (languageCode === 'en') {
-    // 英文句子完整性检查 - 更严格的检查
+    // 英文句子完整性检查 - 更严格检查
     const result = isEnglishSentenceComplete(text);
     
-    // 特殊情况检查 - 如果文本太短或明显不完整
-    // 例如："i see you want to enhance t" 明显是不完整的
-    if (text.trim().length < 15 && !result) {
+    // 特殊情况检查 - 常见的明显不完整词组
+    const commonIncompleteEndings = [
+      'to ', 'and ', 'or ', 'the ', 'a ', 'an ', 'in ', 'on ', 'at ', 'with ', 'by ', 'as ', 
+      'for ', 'from ', 'of ', 'about ', 'than '
+    ];
+    
+    if (commonIncompleteEndings.some(ending => text.trim().endsWith(ending.trim()))) {
+      return false;
+    }
+    
+    // 检查英文句子是否只有几个单词且没有标点 (更可能是不完整的)
+    const words = text.trim().split(/\s+/);
+    if (words.length <= 3 && !/[.?!,;:]/.test(text)) {
       return false;
     }
     
