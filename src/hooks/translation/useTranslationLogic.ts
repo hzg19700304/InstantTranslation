@@ -1,9 +1,11 @@
+
 import { useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Language } from "@/types/translation";
 import { LLMProvider } from "@/services/translation/types";
 import { useTranslationCore } from "./useTranslationCore";
 import { useTranslationTimer } from "./useTranslationTimer";
+import { shouldTranslate } from "@/services/translation/completeness";
 
 interface UseTranslationLogicProps {
   sourceText: string;
@@ -73,22 +75,14 @@ export const useTranslationLogic = ({
       return;
     }
     
-    // 改进后的不完整输入检测逻辑
-    // 1. 字数太少的不触发翻译
-    if (sourceText.trim().length <= 8) {
-      return; // 不触发翻译，等待用户输入更多
-    }
-    
-    // 2. 检查是否以不完整的标点符号结尾（可能表示用户正在输入）
-    const lastChar = sourceText.trim().slice(-1);
-    const incompleteEndingChars = ['(', '[', '{', '"', "'", '，', '：', '；', '、', '…', '-', '=', '+', '<', '>', '/'];
-    if (incompleteEndingChars.includes(lastChar)) {
-      return; // 不翻译，等待用户完成输入
-    }
-    
-    // 3. 检查是否包含常见的未完成的词汇模式（例如只有少数几个字母的英文单词）
-    if (/\b\w{1,2}\s*$/.test(sourceText)) {
-      return; // 以1-2个字母结尾可能是未完成的单词
+    // 使用新的智能完整性判断逻辑
+    if (!shouldTranslate(
+      sourceText, 
+      sourceLanguage.code, 
+      lastTranslatedTextRef.current,
+      isFirstTranslationRef.current
+    )) {
+      return; // 不触发翻译
     }
     
     if (!llmApiKey) {
@@ -101,11 +95,6 @@ export const useTranslationLogic = ({
     
     // 保存当前待翻译的源文本，防止在翻译过程中文本变化导致翻译结果被清空
     currentSourceTextRef.current = sourceText;
-    
-    // 避免重复翻译相同的文本
-    if (sourceText === lastTranslatedTextRef.current && !isFirstTranslationRef.current) {
-      return;
-    }
     
     // 设置翻译中状态
     if (!isTranslating) {
@@ -132,7 +121,10 @@ export const useTranslationLogic = ({
       let isIncremental = false;
       
       // 不再使用增量翻译模式，直接翻译整个文本
-      console.log("进行完整翻译:", { 文本: textToTranslate });
+      console.log("进行完整翻译:", { 
+        文本: textToTranslate,
+        语言: sourceLanguage.code
+      });
       
       // 执行翻译并获取结果
       const translationResult = await processIncrementalTranslation(

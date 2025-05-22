@@ -3,6 +3,7 @@ import React from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TranslationHistoryItem } from "@/hooks/translation/useTranslationState";
 import { cn } from "@/lib/utils";
+import { isInputComplete } from "@/services/translation/completeness";
 
 interface TranslationHistoryProps {
   history: TranslationHistoryItem[];
@@ -18,12 +19,16 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
   // 过滤掉空的、过短的或不完整的历史记录
   const filteredHistory = history.filter(item => {
     // 基本过滤条件
-    const isLongEnough = item.sourceText.trim().length > 8; // 增加长度要求
-    const hasTranslation = item.translatedText.trim().length > 5; // 增加长度要求
+    const isLongEnough = item.sourceText.trim().length > 8; 
+    const hasTranslation = item.translatedText.trim().length > 5; 
     const isComplete = !item.translatedText.includes("翻译中...") && 
                        !item.translatedText.includes("...") &&
                        !item.translatedText.includes("Error:") &&
                        !item.translatedText.includes("[翻译失败]");
+    
+    // 使用完整性检查函数检查源文本是否是完整的句子
+    const isSourceComplete = isInputComplete(item.sourceText, 
+      sourceLanguage === "中文" ? "zh" : "en");
     
     // 检查是否是一个有意义的翻译（不是正在输入中产生的）
     const isMeaningfulTranslation = item.translatedText.length >= item.sourceText.length / 5;
@@ -31,7 +36,7 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
     // 确保翻译结果和原文不完全相同
     const isDifferent = item.sourceText.toLowerCase() !== item.translatedText.toLowerCase();
     
-    return isLongEnough && hasTranslation && isComplete && isMeaningfulTranslation && isDifferent;
+    return isLongEnough && hasTranslation && isComplete && isMeaningfulTranslation && isDifferent && isSourceComplete;
   });
 
   if (filteredHistory.length === 0) {

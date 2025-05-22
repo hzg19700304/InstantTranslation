@@ -1,13 +1,14 @@
 
-// Translation service entry point
-// Re-exports all translation-related functionality
+// Translation services exports
 
+// API translations
 export * from './apiTranslation';
-export * from './llmTranslation';
-export * from './types';
-export * from './utils';
-export * from './providers/huggingface';
-export * from './providers/deepseek';
-export * from './providers/gemini';
-export * from './providers/chatgpt';
 
+// LLM translations
+export * from './llmTranslation';
+
+// Text completeness checking
+export * from './completeness';
+
+// Utility functions
+export * from './utils';
