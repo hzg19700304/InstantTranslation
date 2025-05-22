@@ -8,7 +8,7 @@ export * from './apiTranslation';
 export * from './llmTranslation';
 
 // Text completeness checking
-export * from './completeness';
+export * from './completeness/index';
 
 // Utility functions
 export * from './utils';
