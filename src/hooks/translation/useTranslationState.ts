@@ -39,30 +39,71 @@ export const useTranslationState = ({
   const completeTranslationRef = useRef<string>("");
   const isFirstTranslationRef = useRef<boolean>(true);
 
-  // 添加一个新的翻译结果到历史记录，带有确定性标记
+  // 添加一个新的翻译结果到历史记录，带有确定性标记，并根据上下文进行整合
   const addToTranslationHistory = (sourceText: string, translatedText: string, isComplete: boolean = true) => {
     if (sourceText && translatedText && translatedText !== "[翻译失败]") {
-      // 检查是否已经存在非常相似的翻译，避免重复添加
-      const isDuplicate = translationHistory.some(item =>
-        // 如果源文本和翻译结果都非常相似，就认为是重复的
-        (item.sourceText === sourceText || 
-         (item.sourceText.length > 10 && sourceText.includes(item.sourceText))) &&
-        (item.translatedText === translatedText || 
-         (item.translatedText.length > 10 && translatedText.includes(item.translatedText)))
-      );
-      
-      // 只有不是重复的翻译才添加到历史记录
-      if (!isDuplicate) {
-        setTranslationHistory(prev => [
+      setTranslationHistory(prev => {
+        // 检查是否有高度相似的翻译，避免重复添加
+        const isDuplicate = prev.some(item => {
+          // 检查源文本相似性
+          const isSourceSimilar = 
+            item.sourceText === sourceText || 
+            (item.sourceText.length > 5 && 
+             (sourceText.includes(item.sourceText) || item.sourceText.includes(sourceText)));
+          
+          // 检查翻译结果相似性
+          const isTranslationSimilar = 
+            item.translatedText === translatedText || 
+            (item.translatedText.length > 5 && 
+             (translatedText.includes(item.translatedText) || item.translatedText.includes(translatedText)));
+          
+          // 两者都相似则认为是重复的，或者是上下文相关的
+          return isSourceSimilar && isTranslationSimilar;
+        });
+        
+        // 如果是重复的或上下文相关的，更新现有项而不是添加新项
+        if (isDuplicate) {
+          return prev.map(item => {
+            // 检查当前项是否与新项内容相似
+            const isSourceSimilar = 
+              item.sourceText === sourceText || 
+              (item.sourceText.length > 5 && 
+               (sourceText.includes(item.sourceText) || item.sourceText.includes(sourceText)));
+            
+            const isTranslationSimilar = 
+              item.translatedText === translatedText || 
+              (item.translatedText.length > 5 && 
+               (translatedText.includes(item.translatedText) || item.translatedText.includes(translatedText)));
+            
+            // 如果这一项与新项相似，更新为新内容
+            if (isSourceSimilar && isTranslationSimilar) {
+              // 保留较长/较完整的内容
+              const newSourceText = sourceText.length > item.sourceText.length ? sourceText : item.sourceText;
+              const newTranslatedText = translatedText.length > item.translatedText.length ? translatedText : item.translatedText;
+              
+              return {
+                ...item,
+                sourceText: newSourceText,
+                translatedText: newTranslatedText,
+                timestamp: new Date(), // 更新时间戳
+                isComplete: isComplete || item.isComplete // 保持完整性标记
+              };
+            }
+            return item;
+          });
+        }
+        
+        // 不是重复的，添加到历史记录前面
+        return [
           {
             sourceText,
             translatedText,
             timestamp: new Date(),
             isComplete
           },
-          ...prev.slice(0, 9) // 只保留最近的10条记录
-        ]);
-      }
+          ...prev.slice(0, 9) // 只保留最近的10条记录（新的 + 前9条）
+        ];
+      });
     }
   };
   
