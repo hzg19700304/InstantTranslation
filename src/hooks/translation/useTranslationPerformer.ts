@@ -3,8 +3,9 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import { Language } from "@/types/translation";
 import { LLMProvider } from "@/services/translation/types";
-import { shouldTranslate, isInputComplete } from "@/services/translation/completeness";
 import { useTranslationCore } from "./useTranslationCore";
+import { useTranslationValidation } from "./useTranslationValidation";
+import { useTranslationExecutor } from "./useTranslationExecutor";
 
 interface UseTranslationPerformerProps {
   sourceText: string;
@@ -60,6 +61,24 @@ export const useTranslationPerformer = ({
     previousTranslationText: previousTranslationResultRef.current
   });
   
+  // 获取翻译验证功能
+  const { shouldExecuteTranslation } = useTranslationValidation({
+    llmApiKey,
+    lastTranslatedTextRef,
+    isFirstTranslationRef
+  });
+  
+  // 获取翻译执行功能
+  const { executeTranslation } = useTranslationExecutor({
+    sourceText,
+    sourceLanguage,
+    llmApiKey,
+    lastTranslatedTextRef,
+    isFirstTranslationRef,
+    completeTranslationRef,
+    processIncrementalTranslation
+  });
+  
   // 执行翻译
   const performTranslation = useCallback(async () => {
     if (!sourceText) {
@@ -68,25 +87,8 @@ export const useTranslationPerformer = ({
       return;
     }
     
-    // 先判断源文本是否完整，并将结果保存下来供后续使用
-    const isInputCompleteFlag = isInputComplete(sourceText, sourceLanguage.code);
-    console.log(`输入完整性检查结果: ${isInputCompleteFlag ? '完整' : '不完整'}`);
-    
-    // 使用智能完整性判断逻辑
-    if (!shouldTranslate(
-      sourceText, 
-      sourceLanguage.code, 
-      lastTranslatedTextRef.current,
-      isFirstTranslationRef.current
-    )) {
-      return; // 不触发翻译
-    }
-    
-    if (!llmApiKey) {
-      setTranslationError("未配置API密钥，请在设置中配置");
-      toast.error("翻译需要API密钥", {
-        description: "请在设置中配置大模型API密钥"
-      });
+    // 验证是否应该执行翻译
+    if (!shouldExecuteTranslation(sourceText, sourceLanguage.code)) {
       return;
     }
     
@@ -110,93 +112,33 @@ export const useTranslationPerformer = ({
       return;
     }
     
-    try {
-      // 确定要翻译的文本
-      let textToTranslate = sourceText;
-      let isIncremental = false;
-      
-      console.log("进行翻译:", { 
-        文本: textToTranslate,
-        语言: sourceLanguage.code,
-        是否完整输入: isInputCompleteFlag
-      });
-      
-      // 执行翻译并获取结果
-      const translationResult = await processIncrementalTranslation(
-        textToTranslate,
-        isIncremental,
-        completeTranslationRef.current
-      );
-      
-      // 处理翻译结果
-      if (translationResult === "[翻译失败]") {
-        setTranslationError("翻译服务暂时不可用，请稍后再试");
-      } else {
-        setTranslationError("");
-        
-        // 确认当前源文本没有变化，然后再更新翻译结果
-        if (currentSourceTextRef.current === sourceText) {
-          // 保存完整的翻译结果
-          completeTranslationRef.current = translationResult;
-          
-          // 更新上一次翻译结果引用
-          previousTranslationResultRef.current = translationResult;
-          
-          // 设置翻译文本，显示给用户
-          setTranslatedText(translationResult);
-          
-          // 检查翻译结果是否有意义
-          const minSourceLength = 6; // 降低源文本长度要求
-          const minTranslationLength = 4; // 降低翻译结果长度要求
-          
-          // 检查是否含有明显的不完整翻译标志
-          const hasIncompleteMarkers = 
-            translationResult.includes("翻译中...") || 
-            translationResult.includes("...") || 
-            translationResult.length < sourceText.length / 6;
-          
-          // 判断翻译是否有足够价值添加到历史记录
-          const isValueableTranslation = 
-            sourceText.trim().length > minSourceLength && 
-            translationResult.trim().length > minTranslationLength && 
-            !hasIncompleteMarkers &&
-            // 翻译结果至少要有源文本长度的15%
-            translationResult.length >= sourceText.length * 0.15;
-          
-          if (isValueableTranslation) {
-            // 只有当翻译结果有足够价值时才添加到历史记录，并标记是否完整
-            addToTranslationHistory(sourceText, translationResult, isInputCompleteFlag);
-          }
-          
-          // 更新最后翻译的文本引用
-          lastTranslatedTextRef.current = sourceText;
-          isFirstTranslationRef.current = false;
-        }
-      }
-    } catch (error) {
-      console.error("Translation error:", error);
-      setTranslationError("翻译服务连接失败");
-      toast.error("翻译失败", {
-        description: "无法完成翻译，请稍后再试或检查API密钥"
-      });
-    } finally {
-      // 确认当前源文本没有变化，才结束翻译状态
-      if (currentSourceTextRef.current === sourceText) {
-        setIsTranslating(false);
-        translationInProgressRef.current = false;
-      }
+    // 执行翻译
+    await executeTranslation(
+      currentSourceTextRef,
+      previousTranslationResultRef,
+      setTranslatedText,
+      setTranslationError,
+      addToTranslationHistory
+    );
+    
+    // 确认当前源文本没有变化，才结束翻译状态
+    if (currentSourceTextRef.current === sourceText) {
+      setIsTranslating(false);
+      translationInProgressRef.current = false;
     }
   }, [
     sourceText, 
     sourceLanguage, 
-    targetLanguage, 
     isTranslating, 
     setIsTranslating, 
     setTranslatedText,
     setTranslationError, 
-    processIncrementalTranslation,
+    shouldExecuteTranslation,
+    executeTranslation,
     addToTranslationHistory,
-    llmApiKey
+    currentSourceTextRef,
+    translationInProgressRef,
+    previousTranslationResultRef
   ]);
   
   return { performTranslation };

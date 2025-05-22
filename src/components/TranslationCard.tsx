@@ -38,7 +38,7 @@ const TranslationCard = ({
             </span>
           )}
           {/* 显示完整性状态 */}
-          {!isSource && (
+          {!isSource && value && (
             <span className={cn(
               "ml-auto text-xs px-1.5 py-0.5 rounded-full", 
               isComplete ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
@@ -55,8 +55,8 @@ const TranslationCard = ({
             "min-h-[120px] border-translator-primary/10 focus:border-translator-primary",
             isSource ? "bg-translator-secondary/50" : "",
             !isSource && "bg-white",
-            !isSource && !isComplete && "text-gray-500",
-            !isSource && isComplete && "text-blue-700"
+            !isSource && !isComplete && value && "text-gray-500",
+            !isSource && isComplete && value && "text-blue-700"
           )}
           readOnly={!isSource}
         />
