@@ -19,7 +19,7 @@ export const useTranslationTimer = ({
 }: UseTranslationTimerProps) => {
   
   // 设置计时器
-  const setTranslationTimer = useCallback((delay: number = 500) => {
+  const setTranslationTimer = useCallback((delay: number = 300) => { // 减少默认延迟
     // 取消之前的计时器
     if (translationTimeoutRef.current) {
       clearTimeout(translationTimeoutRef.current);

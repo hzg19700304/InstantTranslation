@@ -79,9 +79,13 @@ const isEnglishSentenceComplete = (text: string): boolean => {
   const containsVerb = /\b(am|is|are|was|were|be|being|been|do|does|did|have|has|had|can|could|will|would|shall|should|may|might|must|ought)\b/i.test(trimmedText) || 
                       /\b\w+(?:s|ed|ing)\b/i.test(trimmedText);
   
+  // 语义完整性检查 - 即使没有句号，如果句子结构完整也应该被认为是完整的
+  const isSemanticComplete = hasMinimumWords && containsVerb && !endsWithConjunctionOrPreposition;
+  
   // 结合多种条件判断句子完整性
-  return (endsWithProperPunctuation && !hasUnclosedElements && !endsWithConjunctionOrPreposition) ||
-         (hasMinimumWords && containsVerb && !endsWithConjunctionOrPreposition && !hasUnclosedElements);
+  return endsWithProperPunctuation || 
+         (isSemanticComplete && !hasUnclosedElements) || 
+         (wordCount >= 5 && !endsWithConjunctionOrPreposition && !hasUnclosedElements);
 };
 
 // 判断中文句子是否完整
@@ -111,12 +115,14 @@ const isChineseSentenceComplete = (text: string): boolean => {
                     trimmedText.includes('？') ||
                     /什么|谁|哪|怎|为什么/.test(trimmedText);
   
-  // 检查中文句子常见结构 - 大部分句子有主谓结构
-  // 此处为简化算法，仅通过长度和标点符号判断
+  // 语义完整性检查 - 即使没有句号，如果内容足够长并且不是以连接词结尾，也可能是完整句子
+  const isSemanticComplete = hasMinimumLength && !endsWithConjunction && trimmedText.length >= 10;
   
   // 结合多种条件判断句子完整性
-  return (endsWithProperPunctuation && !hasUnclosedElements && !endsWithConjunction) ||
-         (hasMinimumLength && !endsWithConjunction && !hasUnclosedElements && (isQuestion || endsWithProperPunctuation));
+  return endsWithProperPunctuation || 
+         (isSemanticComplete && !hasUnclosedElements) || 
+         (trimmedText.length >= 15 && !endsWithConjunction && !hasUnclosedElements) ||
+         (isQuestion && !endsWithConjunction && !hasUnclosedElements);
 };
 
 /**
@@ -127,7 +133,7 @@ const isChineseSentenceComplete = (text: string): boolean => {
  */
 export function isInputComplete(text: string, languageCode: string): boolean {
   // 基本检查 - 太短的文本视为不完整
-  if (!text || text.trim().length <= 8) {
+  if (!text || text.trim().length <= 5) {
     return false;
   }
   
@@ -144,13 +150,17 @@ export function isInputComplete(text: string, languageCode: string): boolean {
     return isEnglishSentenceComplete(text);
   }
   
-  // 通用检查 - 如果没有语言特定规则，检查是否以句号结束标点符号结束
-  return SENTENCE_ENDING_PUNCTUATION.common.some(punct => text.trim().endsWith(punct));
+  // 通用检查 - 如果没有语言特定规则，检查是否是合理长度
+  // 不再强制要求必须以句号结束
+  return text.trim().length >= 10;
 }
+
+// 上次输入检查的时间戳
+let lastInputCheckTime = 0;
 
 /**
  * 检查文本是否符合翻译条件
- * 结合了文本长度、完整性和避免重复翻译的逻辑
+ * 结合了文本长度、完整性和时间阈值的逻辑
  */
 export function shouldTranslate(
   sourceText: string, 
@@ -158,21 +168,51 @@ export function shouldTranslate(
   lastTranslatedText: string,
   isFirstTranslation: boolean
 ): boolean {
+  const currentTime = Date.now();
+  
   // 空文本不翻译
   if (!sourceText.trim()) {
+    lastInputCheckTime = currentTime;
     return false;
   }
   
   // 避免重复翻译相同的文本
   if (sourceText === lastTranslatedText && !isFirstTranslation) {
+    lastInputCheckTime = currentTime;
     return false;
   }
   
-  // 文本太短不翻译
-  if (sourceText.trim().length <= 8) {
+  // 文本太短不翻译 (减少最小长度要求)
+  if (sourceText.trim().length < 5) {
+    lastInputCheckTime = currentTime;
     return false;
   }
   
   // 检查输入是否完整
-  return isInputComplete(sourceText, sourceLanguageCode);
+  const isComplete = isInputComplete(sourceText, sourceLanguageCode);
+  
+  // 如果文本已经完整，检查时间阈值 (如果停顿超过1秒，触发翻译)
+  if (isComplete) {
+    // 如果是首次翻译或者文本已变化，更新上次检查时间
+    if (lastInputCheckTime === 0) {
+      lastInputCheckTime = currentTime;
+      return false;
+    }
+    
+    // 检查是否已经过了时间阈值 (1000毫秒 = 1秒)
+    const hasExceededTimeThreshold = (currentTime - lastInputCheckTime) >= 1000;
+    
+    // 如果超过了时间阈值，重置上次检查时间并触发翻译
+    if (hasExceededTimeThreshold) {
+      lastInputCheckTime = currentTime;
+      return true;
+    }
+    
+    // 未超过时间阈值，等待更长时间
+    return false;
+  }
+  
+  // 如果文本不完整，更新上次检查时间但不触发翻译
+  lastInputCheckTime = currentTime;
+  return false;
 }
