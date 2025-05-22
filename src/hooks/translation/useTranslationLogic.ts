@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Language } from "@/types/translation";
@@ -14,7 +13,7 @@ interface UseTranslationLogicProps {
   setIsTranslating: (isTranslating: boolean) => void;
   setTranslatedText: (text: string) => void;
   setTranslationError: (error: string) => void;
-  setSourceText: (text: string) => void; // Add this to clear source input
+  setSourceText: (text: string) => void; // Still needed for other functions
   llmApiKey: string;
   currentLLM: LLMProvider;
   retryCount: number;
@@ -174,9 +173,6 @@ export const useTranslationLogic = ({
               !hasIncompleteMarkers) {
             // 只有当翻译完成且结果有意义时，才添加到历史记录
             addToTranslationHistory(sourceText, translationResult, true);
-            
-            // 翻译完成后清空输入框
-            setSourceText("");
           }
           
           // 更新最后翻译的文本引用
