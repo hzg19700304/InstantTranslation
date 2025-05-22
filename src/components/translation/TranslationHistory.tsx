@@ -64,8 +64,8 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
       return uniqueItems;
     }, [] as TranslationHistoryItem[]);
   
-  // 最多显示5条历史记录
-  const displayHistory = filteredHistory.slice(0, 5);
+  // 移除条数限制，显示所有过滤后的历史记录
+  const displayHistory = filteredHistory;
   
   // 计算两个文本的相似度 (0-1 范围，1表示完全相同)
   function calculateSimilarity(text1: string, text2: string): number {
