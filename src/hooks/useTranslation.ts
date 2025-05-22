@@ -41,6 +41,7 @@ export const useTranslation = ({
     setIsTranslating: state.setIsTranslating,
     setTranslatedText: state.setTranslatedText,
     setTranslationError: state.setTranslationError,
+    setSourceText: state.setSourceText, // 传递setSourceText函数以清空输入框
     llmApiKey: llmSettings.llmApiKey,
     currentLLM: llmSettings.currentLLM,
     retryCount: state.retryCount,

@@ -14,6 +14,7 @@ interface UseTranslationLogicProps {
   setIsTranslating: (isTranslating: boolean) => void;
   setTranslatedText: (text: string) => void;
   setTranslationError: (error: string) => void;
+  setSourceText: (text: string) => void; // Add this to clear source input
   llmApiKey: string;
   currentLLM: LLMProvider;
   retryCount: number;
@@ -39,6 +40,7 @@ export const useTranslationLogic = ({
   setIsTranslating,
   setTranslatedText,
   setTranslationError,
+  setSourceText,
   llmApiKey,
   currentLLM,
   retryCount,
@@ -72,17 +74,22 @@ export const useTranslationLogic = ({
       return;
     }
     
-    // 加强检查短文本和正在输入中的文本的判断逻辑
+    // 改进后的不完整输入检测逻辑
     // 1. 字数太少的不触发翻译
-    if (sourceText.trim().length <= 5) {
+    if (sourceText.trim().length <= 8) {
       return; // 不触发翻译，等待用户输入更多
     }
     
     // 2. 检查是否以不完整的标点符号结尾（可能表示用户正在输入）
     const lastChar = sourceText.trim().slice(-1);
-    const incompleteEndingChars = ['(', '[', '{', '"', "'", '，', '：', '；', '、', '…'];
+    const incompleteEndingChars = ['(', '[', '{', '"', "'", '，', '：', '；', '、', '…', '-', '=', '+', '<', '>', '/'];
     if (incompleteEndingChars.includes(lastChar)) {
       return; // 不翻译，等待用户完成输入
+    }
+    
+    // 3. 检查是否包含常见的未完成的词汇模式（例如只有少数几个字母的英文单词）
+    if (/\b\w{1,2}\s*$/.test(sourceText)) {
+      return; // 以1-2个字母结尾可能是未完成的单词
     }
     
     if (!llmApiKey) {
@@ -110,7 +117,7 @@ export const useTranslationLogic = ({
     
     // 增加延迟，给用户更多时间完成输入
     // 这里使用 setTimeout 添加额外延迟
-    await new Promise(resolve => setTimeout(resolve, 600));
+    await new Promise(resolve => setTimeout(resolve, 800));
     
     // 再次检查源文本是否已经改变，如果改变则取消当前翻译
     if (currentSourceTextRef.current !== sourceText) {
@@ -125,18 +132,8 @@ export const useTranslationLogic = ({
       let textToTranslate = sourceText;
       let isIncremental = false;
       
-      // 如果当前文本是之前文本的扩展，只翻译新增部分
-      if (lastTranslatedTextRef.current && sourceText.startsWith(lastTranslatedTextRef.current) && !isFirstTranslationRef.current) {
-        const newText = sourceText.substring(lastTranslatedTextRef.current.length).trim();
-        // 只有当新文本有内容时，才进行增量翻译
-        if (newText) {
-          textToTranslate = newText;
-          isIncremental = true;
-          console.log("进行增量翻译:", { 原文本: lastTranslatedTextRef.current.substring(0, 20) + "...", 新增部分: newText });
-        }
-      }
-      
-      // 不再添加未完成的翻译到历史记录中
+      // 不再使用增量翻译模式，直接翻译整个文本
+      console.log("进行完整翻译:", { 文本: textToTranslate });
       
       // 执行翻译并获取结果
       const translationResult = await processIncrementalTranslation(
@@ -156,27 +153,30 @@ export const useTranslationLogic = ({
           // 保存完整的翻译结果
           completeTranslationRef.current = translationResult;
           
-          // 如果是增量翻译，则确保更新 previousTranslationResultRef 为新的完整翻译
+          // 更新上一次翻译结果引用
           previousTranslationResultRef.current = translationResult;
           
           // 设置翻译文本，显示给用户
           setTranslatedText(translationResult);
           
           // 加强检查翻译结果是否有意义 (避免保存不完整或无意义的翻译)
-          const minSourceLength = 5; // 增加最小原文长度要求
-          const minTranslationLength = 3; // 增加最小翻译结果长度要求
+          const minSourceLength = 8; // 增加最小原文长度要求
+          const minTranslationLength = 5; // 增加最小翻译结果长度要求
           
           // 检查是否含有明显的不完整翻译标志
           const hasIncompleteMarkers = 
             translationResult.includes("翻译中...") || 
             translationResult.includes("...") || 
-            translationResult.length < sourceText.length / 4; // 翻译结果异常短
+            translationResult.length < sourceText.length / 5; // 翻译结果异常短
           
           if (sourceText.trim().length > minSourceLength && 
               translationResult.trim().length > minTranslationLength && 
               !hasIncompleteMarkers) {
             // 只有当翻译完成且结果有意义时，才添加到历史记录
             addToTranslationHistory(sourceText, translationResult, true);
+            
+            // 翻译完成后清空输入框
+            setSourceText("");
           }
           
           // 更新最后翻译的文本引用
@@ -203,7 +203,8 @@ export const useTranslationLogic = ({
     targetLanguage, 
     isTranslating, 
     setIsTranslating, 
-    setTranslatedText, 
+    setTranslatedText,
+    setSourceText, 
     setTranslationError, 
     processIncrementalTranslation,
     addToTranslationHistory,
