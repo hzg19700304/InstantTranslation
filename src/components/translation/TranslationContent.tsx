@@ -78,14 +78,6 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
         isSource={true}
       />
       
-      {/* 目标语言卡片 - 恢复翻译结果显示 */}
-      <TranslationCard 
-        language={targetLanguage}
-        value={translatedText}
-        isSource={false}
-        isComplete={isTranslationComplete}
-      />
-      
       {/* 翻译错误提示和重试按钮 */}
       {translationError && (
         <div className="mt-2 text-center">
