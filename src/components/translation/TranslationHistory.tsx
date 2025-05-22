@@ -15,7 +15,7 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
   sourceLanguage,
   targetLanguage
 }) => {
-  // 优化历史记录过滤，根据上下文和内容相关性来整合
+  // 优化历史记录过滤，更智能地合并相似记录和去除错误记录
   const filteredHistory = history
     .filter(item => {
       // 基本过滤条件
@@ -25,23 +25,35 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
                         !item.translatedText.includes("Error:") &&
                         !item.translatedText.includes("[翻译失败]");
       
+      // 检查是否含有明显的错误标记
+      const hasObviousErrors = item.translatedText.includes("bao'c") || 
+                              item.translatedText.includes("undefined") ||
+                              item.translatedText.includes("[object Object]");
+      
       // 确保翻译结果和原文不完全相同
       const isDifferent = item.sourceText.toLowerCase() !== item.translatedText.toLowerCase();
       
-      return isLongEnough && hasTranslation && isComplete && isDifferent;
+      return isLongEnough && hasTranslation && isComplete && isDifferent && !hasObviousErrors;
     })
-    // 根据上下文整合相似的翻译，保留最新的一条
+    // 根据上下文智能地合并相似记录，更倾向于保留完整的翻译
     .reduce((uniqueItems, currentItem) => {
       // 检查是否有内容高度相似的项目
-      const similarItemIndex = uniqueItems.findIndex(item => 
-        // 检查源文本或译文是否包含对方的大部分内容
-        isTextSimilar(item.sourceText, currentItem.sourceText) ||
-        isTextSimilar(item.translatedText, currentItem.translatedText)
-      );
+      const similarItemIndex = uniqueItems.findIndex(item => {
+        // 检查源文本相似性 (使用更严格的相似度检测)
+        const isSourceSimilar = calculateSimilarity(item.sourceText, currentItem.sourceText) > 0.8;
+        
+        // 如果源文本相似，我们认为这些记录应该合并
+        return isSourceSimilar;
+      });
       
       if (similarItemIndex !== -1) {
-        // 如果找到相似项，保留时间较新的一个
-        if (new Date(currentItem.timestamp) > new Date(uniqueItems[similarItemIndex].timestamp)) {
+        // 如果找到相似项，根据质量和完整性判断保留哪一个
+        const existingItem = uniqueItems[similarItemIndex];
+        
+        // 判断哪个翻译结果更完整/质量更高
+        const keepCurrent = isHigherQualityTranslation(currentItem, existingItem);
+        
+        if (keepCurrent) {
           uniqueItems[similarItemIndex] = currentItem;
         }
       } else {
@@ -55,23 +67,64 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
   // 最多显示5条历史记录
   const displayHistory = filteredHistory.slice(0, 5);
   
-  // 检查文本相似度的辅助函数
-  function isTextSimilar(text1: string, text2: string): boolean {
-    // 如果两个字符串都很短，使用更严格的相似度检查
-    if (text1.length < 10 && text2.length < 10) {
-      return text1.toLowerCase() === text2.toLowerCase();
+  // 计算两个文本的相似度 (0-1 范围，1表示完全相同)
+  function calculateSimilarity(text1: string, text2: string): number {
+    // 如果有一个是空文本，则认为不相似
+    if (!text1.trim() || !text2.trim()) return 0;
+    
+    // 将两个文本转换为小写并去除特殊字符
+    const cleanText1 = text1.toLowerCase().replace(/[^\w\s\u4e00-\u9fa5]/g, '').trim();
+    const cleanText2 = text2.toLowerCase().replace(/[^\w\s\u4e00-\u9fa5]/g, '').trim();
+    
+    // 对于非常短的文本，需要更严格
+    if (cleanText1.length < 10 || cleanText2.length < 10) {
+      return cleanText1 === cleanText2 ? 1 : 0;
     }
     
-    // 对于长文本，计算包含率
-    const text1Lower = text1.toLowerCase();
-    const text2Lower = text2.toLowerCase();
-    
-    // 检查较短的文本是否是较长文本的一部分
-    if (text1Lower.length < text2Lower.length) {
-      return text2Lower.includes(text1Lower);
-    } else {
-      return text1Lower.includes(text2Lower);
+    // 计算编辑距离的简化版本：检查包含率
+    if (cleanText1.includes(cleanText2) || cleanText2.includes(cleanText1)) {
+      return 0.9;
     }
+    
+    // 简单的词重叠检测
+    const words1 = new Set(cleanText1.split(/\s+/));
+    const words2 = new Set(cleanText2.split(/\s+/));
+    
+    // 计算交集大小
+    const intersection = [...words1].filter(word => words2.has(word)).length;
+    
+    // 计算并集大小
+    const union = words1.size + words2.size - intersection;
+    
+    // Jaccard 相似度
+    return union > 0 ? intersection / union : 0;
+  }
+  
+  // 判断哪个翻译结果质量更高
+  function isHigherQualityTranslation(current: TranslationHistoryItem, existing: TranslationHistoryItem): boolean {
+    // 比较完整性标记
+    if (current.isComplete && !existing.isComplete) return true;
+    if (!current.isComplete && existing.isComplete) return false;
+    
+    // 检查是否有明显的错误标记
+    const currentHasErrors = current.translatedText.includes("bao'c") || 
+                            current.translatedText.includes("undefined") ||
+                            current.translatedText.includes("[object Object]");
+    
+    const existingHasErrors = existing.translatedText.includes("bao'c") || 
+                             existing.translatedText.includes("undefined") || 
+                             existing.translatedText.includes("[object Object]");
+    
+    if (!currentHasErrors && existingHasErrors) return true;
+    if (currentHasErrors && !existingHasErrors) return false;
+    
+    // 比较译文长度 (通常更长的译文包含更多信息)
+    if (Math.abs(current.translatedText.length - existing.translatedText.length) > 10) {
+      return current.translatedText.length > existing.translatedText.length;
+    }
+    
+    // 优先保留较新的翻译
+    return new Date(current.timestamp) > new Date(existing.timestamp);
   }
 
   if (displayHistory.length === 0) {
