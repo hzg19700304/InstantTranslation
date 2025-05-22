@@ -1,10 +1,10 @@
-
 import React from "react";
 import { ArrowDown, Repeat, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TranslationCard from "@/components/TranslationCard";
 import { Language } from "@/types/translation";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useVoiceInput } from "@/hooks/speech/useVoiceInput";
 
 interface TranslationHistoryItem {
   sourceText: string;
@@ -23,6 +23,8 @@ interface TranslationContentProps {
   handleRetryTranslation: () => void;
   translationHistory?: TranslationHistoryItem[];
   handleClearTranslation?: () => void;
+  currentSpeechModel: import("@/components/speech/VoiceModelSelector").SpeechModel;
+  speechApiKey: string;
 }
 
 const TranslationContent: React.FC<TranslationContentProps> = ({
@@ -36,7 +38,24 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
   handleRetryTranslation,
   translationHistory = [],
   handleClearTranslation = () => {},
+  currentSpeechModel,
+  speechApiKey
 }) => {
+  const { resetVoiceInputRefs } = useVoiceInput({
+    sourceText,
+    setSourceText,
+    sourceLanguageCode: sourceLanguage.code,
+    sourceLanguageName: sourceLanguage.name,
+    currentSpeechModel,
+    speechApiKey
+  });
+
+  const onClearTranslation = () => {
+    setSourceText('');
+    resetVoiceInputRefs('');
+    handleClearTranslation();
+  };
+
   return (
     <div className="space-y-4">
       <TranslationCard
@@ -79,7 +98,7 @@ const TranslationContent: React.FC<TranslationContentProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleClearTranslation}
+            onClick={onClearTranslation}
             className="border-translator-primary/20 hover:bg-translator-secondary"
           >
             <Trash2 size={14} className="mr-1.5"/> 清空翻译

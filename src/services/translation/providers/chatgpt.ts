@@ -1,4 +1,3 @@
-
 /**
  * ChatGPT翻译服务提供者
  */
@@ -14,7 +13,7 @@ export const translateWithChatGPT = async (
   sourceLanguage: string,
   targetLanguage: string,
   apiKey: string
-) => {
+): Promise<string> => {
   if (!apiKey) {
     toast.error("请提供ChatGPT API密钥", {
       description: "需要API密钥才能使用ChatGPT进行翻译"
@@ -23,18 +22,38 @@ export const translateWithChatGPT = async (
   }
 
   try {
-    // 获取语言的完整名称用于提示词
-    const sourceLangName = getLanguageName(sourceLanguage);
-    const targetLangName = getLanguageName(targetLanguage);
+    // 获取语言的英文名称用于提示词
+    const getLangName = (code: string) => {
+      switch (code) {
+        case 'zh': return 'Chinese';
+        case 'en': return 'English';
+        case 'ja': return 'Japanese';
+        case 'ko': return 'Korean';
+        case 'fr': return 'French';
+        case 'de': return 'German';
+        case 'es': return 'Spanish';
+        case 'it': return 'Italian';
+        case 'ru': return 'Russian';
+        case 'pt': return 'Portuguese';
+        case 'ar': return 'Arabic';
+        default: return code;
+      }
+    };
+    const sourceLangName = getLangName(sourceLanguage);
+    const targetLangName = getLangName(targetLanguage);
     
-    // 记录请求信息用于调试
-    console.log("正在使用ChatGPT进行翻译:", {
-      sourceLanguage: sourceLangName,
-      targetLanguage: targetLangName,
-      textLength: text.length,
-      apiKeyPrefix: apiKey.substring(0, 3) // 只显示前缀，保护API密钥安全
-    });
-
+    // 优化后的 prompt，减少模型误解
+    const messages = [
+      {
+        role: "system",
+        content: "You are a translation engine. Only output the translation result, no explanation."
+      },
+      {
+        role: "user",
+        content: `Translate the following text from ${sourceLangName} to ${targetLangName}: ${text}`
+      }
+    ];
+    
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -42,18 +61,9 @@ export const translateWithChatGPT = async (
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini", // 使用较新的模型
-        messages: [
-          {
-            role: "system",
-            content: `你是一名专业翻译员，请将以下${sourceLangName}文本准确翻译成${targetLangName}。只需提供翻译结果，不要添加任何解释或额外内容。`
-          },
-          {
-            role: "user",
-            content: text
-          }
-        ],
-        temperature: 0.3, // 较低的温度以获得更准确的翻译
+        model: "gpt-4o-mini",
+        messages,
+        temperature: 0.3,
         max_tokens: 2048
       })
     });

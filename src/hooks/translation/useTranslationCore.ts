@@ -1,4 +1,3 @@
-
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { translateWithLLM } from "@/services/translation";
@@ -37,6 +36,8 @@ export const useTranslationCore = ({
         是否首次翻译: isFirstTranslation,
         使用模型: currentLLM
       });
+      
+      console.log("当前大模型 currentLLM:", currentLLM, "llmApiKey:", llmApiKey);
       
       if (!llmApiKey && currentLLM !== "huggingface") {
         toast.error("缺少API密钥", {

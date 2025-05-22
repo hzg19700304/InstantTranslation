@@ -1,6 +1,6 @@
 
 import { useTranslationState, TranslationHistoryItem } from "./translation/useTranslationState";
-import { useLLMSettings } from "./translation/useLLMSettings";
+import { useLLMSettings } from "@/hooks/translation/useLLMSettings";
 import { useLanguageSwap } from "./translation/useLanguageSwap";
 import { useTranslationLogic } from "./translation/useTranslationLogic";
 import { Language } from "@/types/translation";

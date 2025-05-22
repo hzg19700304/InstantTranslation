@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { LLMProviderSelector } from "@/components/translation-settings/LLMProviderSelector";
 import { APIKeyInput } from "@/components/translation-settings/APIKeyInput";
 import { LLMProvider } from "@/services/translation/types";
@@ -24,6 +23,7 @@ export const TranslationTab: React.FC<TranslationTabProps> = ({
 }) => {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
+  const accumulatedTextRef = useRef<string>('');
 
   const handleTestConnection = async () => {
     if (!llmApiKey) {
@@ -34,7 +34,6 @@ export const TranslationTab: React.FC<TranslationTabProps> = ({
     setIsTestingConnection(true);
     setConnectionStatus('testing');
     try {
-      // 添加日志以帮助调试
       console.log(`开始测试 ${currentLLM} API连接...`);
       
       const result = await testLLMConnection(llmApiKey, currentLLM);
@@ -68,7 +67,6 @@ export const TranslationTab: React.FC<TranslationTabProps> = ({
     }
   };
   
-  // 根据当前模型提供帮助信息
   const getModelHelpInfo = () => {
     switch(currentLLM) {
       case 'chatgpt':
@@ -84,6 +82,16 @@ export const TranslationTab: React.FC<TranslationTabProps> = ({
     }
   };
 
+  const handleClear = () => {
+    setLlmApiKey('');
+    setConnectionStatus('idle');
+    accumulatedTextRef.current = '';
+  };
+
+  const resetVoiceInputRefs = useCallback(() => {
+    accumulatedTextRef.current = '';
+  }, []);
+
   return (
     <div className="grid gap-4">
       <LLMProviderSelector 
@@ -94,7 +102,6 @@ export const TranslationTab: React.FC<TranslationTabProps> = ({
         }} 
       />
       
-      {/* 修改Alert组件，使用默认变体而不是outline变体 */}
       <Alert className="mb-2">
         <AlertTriangle className="h-4 w-4 mr-2" />
         <AlertDescription>
@@ -116,25 +123,10 @@ export const TranslationTab: React.FC<TranslationTabProps> = ({
             <div className="mr-2">
               {renderConnectionStatus()}
             </div>
-            <Button 
-              variant="secondary"
-              onClick={handleTestConnection}
-              disabled={isTestingConnection}
-            >
-              {isTestingConnection ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  测试中...
-                </>
-              ) : (
-                "测试连接"
-              )}
-            </Button>
           </div>
         </div>
       </div>
       
-      {/* 添加网络诊断提示 */}
       {connectionStatus === 'failed' && (
         <div className="mt-2 text-sm text-red-500">
           <p>连接失败可能是由以下原因导致：</p>

@@ -151,6 +151,16 @@ export const SpeechTab: React.FC<SpeechTabProps> = ({
             <div className="text-sm text-gray-500">OpenAI轻量级语音转文字模型，速度更快</div>
           </Label>
         </div>
+        
+        <div className="flex items-center space-x-2 border p-3 rounded-lg hover:bg-gray-50 cursor-pointer">
+          <RadioGroupItem value="silero-vad" id="silero-vad" />
+          <Label htmlFor="silero-vad" className="flex-1 cursor-pointer">
+            <div className="font-semibold flex items-center">
+              Silero VAD (自动分段)
+            </div>
+            <div className="text-sm text-green-600">本地人声检测，自动分段，极快响应，无需API密钥</div>
+          </Label>
+        </div>
       </RadioGroup>
       
       {showApiKeyInput && (

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,7 +7,9 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SplashScreen from "./pages/SplashScreen";
 import { useMobilePlatform } from "./hooks/use-mobile-platform";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useVoiceInput } from "./hooks/speech/useVoiceInput";
+import { SpeechModel } from "@/components/speech/VoiceModelSelector";
 
 // 创建查询客户端实例
 const queryClient = new QueryClient({
@@ -21,7 +22,20 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
+  const [sourceText, setSourceText] = useState('');
+  const [sourceLanguageCode, setSourceLanguageCode] = useState('zh'); // 默认中文，可根据需要修改
+  const [sourceLanguageName, setSourceLanguageName] = useState('Chinese'); // 默认中文，可根据需要修改
+  const [currentSpeechModel, setCurrentSpeechModel] = useState<SpeechModel>('webspeech'); // 类型修正
+  const [speechApiKey, setSpeechApiKey] = useState(''); // 这里不要硬编码真实key
   const { isNative } = useMobilePlatform();
+  const { resetVoiceInputRefs } = useVoiceInput({
+    sourceText,
+    setSourceText,
+    sourceLanguageCode,
+    sourceLanguageName,
+    currentSpeechModel,
+    speechApiKey
+  });
   
   // 为移动设备添加后退按钮处理
   useEffect(() => {
@@ -50,13 +64,18 @@ const App = () => {
       };
       
       // 执行设置并存储cleanup函数
-      let cleanupPromise = setupBackButton();
+      const cleanupPromise = setupBackButton();
       return () => {
         // 确保在组件卸载时执行清理函数
         cleanupPromise.then(cleanupFn => cleanupFn());
       };
     }
   }, [isNative]);
+
+  const handleClearTranslation = () => {
+    setSourceText('');
+    resetVoiceInputRefs();
+  };
 
   return (
     <QueryClientProvider client={queryClient}>

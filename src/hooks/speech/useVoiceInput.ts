@@ -1,9 +1,11 @@
-
 import { useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { startVoiceInput } from "@/services/speech";
 import { startModelVoiceInput } from "@/services/speech/modelSpeech";
 import { SpeechModel } from "@/components/speech/VoiceModelSelector";
+import * as vad from '@ricky0123/vad-web';
+import { float32ToWavBlob } from '@/lib/utils';
+import { InferenceSession, env } from 'onnxruntime-web';
 
 interface UseVoiceInputProps {
   sourceText: string;
@@ -29,6 +31,7 @@ export const useVoiceInput = ({
   const currentVoiceSessionTextRef = useRef<string>("");
   const lastInterimResultRef = useRef<string>("");
   const baseTextRef = useRef<string>("");
+  const accumulatedTextRef = useRef<string>(sourceText);
 
   // Handle voice input start/stop
   const handleVoiceInput = useCallback(() => {
@@ -75,18 +78,76 @@ export const useVoiceInput = ({
     
     setIsListening(true);
     
-    // Save current input text as base text
+    // 每次开始都同步 ref 为最新的 sourceText
     baseTextRef.current = sourceText;
     currentVoiceSessionTextRef.current = sourceText;
+    accumulatedTextRef.current = sourceText;
+    
+    // Silero VAD 自动分段模式
+    if (currentSpeechModel === 'silero-vad') {
+      let micVad: vad.MicVAD | null = null;
+      let stopped = false;
+      (async () => {
+        micVad = await vad.MicVAD.new({
+          positiveSpeechThreshold: 0.5,
+          negativeSpeechThreshold: 0.3,
+          redemptionFrames: 5,
+          preSpeechPadFrames: 3,
+          onSpeechEnd: async (audio: Float32Array) => {
+            if (stopped) return;
+            // 1. 转为 WAV Blob
+            const wavBlob = float32ToWavBlob(audio, 16000);
+            // 2. 上传到大模型 API
+            const formData = new FormData();
+            formData.append('file', wavBlob, 'speech.wav');
+            formData.append('model', 'whisper-1');
+            if (sourceLanguageCode) formData.append('language', sourceLanguageCode);
+            formData.append('prompt',
+              'You are a speech-to-text engine. Transcribe the following audio content as accurately as possible. Only output the exact words spoken in the audio, do not add, complete, or expand the content. If the audio is empty or meaningless, return an empty string. Do not output any explanation, formatting, or additional information. Transcribe in the original language of the audio.'
+            );
+            try {
+              const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${speechApiKey}` },
+                body: formData
+              });
+              const result = await response.json();
+              if (result.text) {
+                // 只和当前输入框内容拼接，不用 ref
+                const currentText = (typeof setSourceText === 'function' ? '' : sourceText) || sourceText;
+                const newText = currentText.trim() ? currentText + ' ' + result.text : result.text;
+                setSourceText(newText);
+                // ref 也同步
+                accumulatedTextRef.current = newText;
+                baseTextRef.current = newText;
+                currentVoiceSessionTextRef.current = newText;
+              }
+            } catch (e) {
+              console.error('大模型语音识别失败:', e);
+            }
+          },
+          onSpeechStart: () => {
+            // 可选：UI提示"检测到说话"
+          },
+          onVADMisfire: () => {
+            // 可选：处理误触发
+          }
+        });
+        micVad.start();
+        stopListeningRef.current = () => {
+          stopped = true;
+          micVad?.pause();
+        };
+      })();
+      return;
+    }
     
     // Handle interim and final results callback
     const handleResult = (text: string, isFinal: boolean) => {
       if (isFinal) {
-        // Handle final result - append to existing text
-        const newText = currentVoiceSessionTextRef.current 
-          ? `${currentVoiceSessionTextRef.current} ${text}`.trim() 
-          : text;
-        
+        // 只和当前输入框内容拼接，不用 ref
+        const currentText = sourceText;
+        const newText = currentText.trim() ? currentText + ' ' + text : text;
         setSourceText(newText);
         currentVoiceSessionTextRef.current = newText;
         lastInterimResultRef.current = "";
@@ -97,7 +158,6 @@ export const useVoiceInput = ({
           // Remove previous interim result
           displayText = displayText.replace(new RegExp(`${lastInterimResultRef.current.trim()}$`), "").trim();
         }
-        
         // Add new interim result
         displayText = `${displayText} ${text}`.trim();
         setSourceText(displayText);
@@ -162,10 +222,23 @@ export const useVoiceInput = ({
     }
   };
 
+  // 新增：重置所有语音输入相关 ref
+  const resetVoiceInputRefs = useCallback((text: string = '') => {
+    accumulatedTextRef.current = text;
+    baseTextRef.current = text;
+    currentVoiceSessionTextRef.current = text;
+    lastInterimResultRef.current = '';
+  }, []);
+
   return {
     isListening,
     handleVoiceInput,
     cleanupVoiceInput,
-    currentVoiceSessionTextRef
+    currentVoiceSessionTextRef,
+    resetVoiceInputRefs
   };
 };
+
+env.wasm.wasmPaths = {
+  'ort-wasm-simd-threaded.wasm': '/ort-wasm-simd-threaded.wasm'
+} as any;

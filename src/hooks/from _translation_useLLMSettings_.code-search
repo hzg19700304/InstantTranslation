@@ -1,0 +1,9 @@
+# Query: from "./translation/useLLMSettings"
+# ContextLines: 1
+
+1 个结果 - 1 个文件
+
+src\hooks\useTranslation.ts:
+  2  import { useTranslationState, TranslationHistoryItem } from "./translation/useTranslationState";
+  3: import { useLLMSettings } from "@/hooks/translation/useLLMSettings";
+  4  import { useLanguageSwap } from "./translation/useLanguageSwap";

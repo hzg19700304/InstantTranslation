@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useVoiceInput } from "./speech/useVoiceInput";
 import { useTextToSpeech } from "./speech/useTextToSpeech";
@@ -12,7 +11,7 @@ interface UseSpeechFeaturesProps {
   sourceLanguageCode: string;
   sourceLanguageName: string;
   targetLanguageCode: string;
-  currentSpeechModel?: SpeechModel;
+  currentSpeechModel?: SpeechModel | 'silero-vad';
   speechApiKey?: string;
 }
 

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { LANGUAGES } from "@/constants/languages";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -121,6 +120,8 @@ const Index = () => {
         handleRetryTranslation={handleRetryTranslation}
         translationHistory={translationHistory}
         handleClearTranslation={clearTranslation}
+        currentSpeechModel={currentSpeechModel}
+        speechApiKey={speechApiKey}
       />
 
       {/* 功能按钮 */}
