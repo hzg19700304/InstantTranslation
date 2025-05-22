@@ -16,18 +16,18 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
   sourceLanguage,
   targetLanguage
 }) => {
-  // 使用更智能的过滤逻辑，不再强制要求输入必须以句号结束
+  // 使用更智能的过滤逻辑，避免过滤掉有意义的翻译记录
   const filteredHistory = history.filter(item => {
-    // 基本过滤条件
-    const isLongEnough = item.sourceText.trim().length > 5; // 降低最小长度要求
-    const hasTranslation = item.translatedText.trim().length > 3; // 降低最小长度要求
+    // 基本过滤条件 - 进一步放宽
+    const isLongEnough = item.sourceText.trim().length > 3; // 降低最小长度要求
+    const hasTranslation = item.translatedText.trim().length > 2; // 降低最小长度要求
     const isComplete = !item.translatedText.includes("翻译中...") && 
-                       !item.translatedText.includes("...") &&
                        !item.translatedText.includes("Error:") &&
                        !item.translatedText.includes("[翻译失败]");
     
-    // 检查是否是一个有意义的翻译（不是正在输入中产生的）
-    const isMeaningfulTranslation = item.translatedText.length >= item.sourceText.length / 6;
+    // 更宽松的有意义翻译判断条件
+    // 只要翻译结果长度达到源文本的15%即可（之前是1/6，约16.7%）
+    const isMeaningfulTranslation = item.translatedText.length >= item.sourceText.length * 0.15;
     
     // 确保翻译结果和原文不完全相同
     const isDifferent = item.sourceText.toLowerCase() !== item.translatedText.toLowerCase();

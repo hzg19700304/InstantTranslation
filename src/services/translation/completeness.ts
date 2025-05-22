@@ -109,6 +109,10 @@ const isChineseSentenceComplete = (text: string): boolean => {
   // 检查最小句子长度 (中文通常不用空格分词，所以直接检查字符数)
   const hasMinimumLength = trimmedText.length >= 5; // 大多数完整中文句子至少有5个字符
   
+  // 中文语义分析 - 特定长度与结构更可能表示完整句子
+  // 检查如果句子有一定长度，且不是以连接词结尾，那么它可能是完整的
+  const isLongEnoughToBeComplete = trimmedText.length >= 12 && !endsWithConjunction;
+  
   // 检查特殊句型 - 中文问句通常会有特定结构
   const isQuestion = trimmedText.includes('吗') || 
                     trimmedText.includes('呢') || 
@@ -116,13 +120,14 @@ const isChineseSentenceComplete = (text: string): boolean => {
                     /什么|谁|哪|怎|为什么/.test(trimmedText);
   
   // 语义完整性检查 - 即使没有句号，如果内容足够长并且不是以连接词结尾，也可能是完整句子
-  const isSemanticComplete = hasMinimumLength && !endsWithConjunction && trimmedText.length >= 10;
+  const isSemanticComplete = hasMinimumLength && !endsWithConjunction && trimmedText.length >= 8;
   
-  // 结合多种条件判断句子完整性
+  // 结合多种条件判断句子完整性，大幅降低对标点符号的依赖
   return endsWithProperPunctuation || 
-         (isSemanticComplete && !hasUnclosedElements) || 
-         (trimmedText.length >= 15 && !endsWithConjunction && !hasUnclosedElements) ||
-         (isQuestion && !endsWithConjunction && !hasUnclosedElements);
+         isLongEnoughToBeComplete || 
+         (isSemanticComplete && !hasUnclosedElements) ||
+         (isQuestion && !endsWithConjunction) ||
+         trimmedText.length >= 15; // 足够长的文本很可能是完整的
 };
 
 /**
@@ -133,7 +138,7 @@ const isChineseSentenceComplete = (text: string): boolean => {
  */
 export function isInputComplete(text: string, languageCode: string): boolean {
   // 基本检查 - 太短的文本视为不完整
-  if (!text || text.trim().length <= 5) {
+  if (!text || text.trim().length <= 3) {
     return false;
   }
   
@@ -152,11 +157,15 @@ export function isInputComplete(text: string, languageCode: string): boolean {
   
   // 通用检查 - 如果没有语言特定规则，检查是否是合理长度
   // 不再强制要求必须以句号结束
-  return text.trim().length >= 10;
+  return text.trim().length >= 8;
 }
 
 // 上次输入检查的时间戳
 let lastInputCheckTime = 0;
+// 记录上次判定为完整的文本
+let lastCompleteText = '';
+// 连续判定为完整的次数，用于更快触发翻译
+let consecutiveCompleteCount = 0;
 
 /**
  * 检查文本是否符合翻译条件
@@ -173,6 +182,7 @@ export function shouldTranslate(
   // 空文本不翻译
   if (!sourceText.trim()) {
     lastInputCheckTime = currentTime;
+    consecutiveCompleteCount = 0;
     return false;
   }
   
@@ -182,37 +192,60 @@ export function shouldTranslate(
     return false;
   }
   
-  // 文本太短不翻译 (减少最小长度要求)
-  if (sourceText.trim().length < 5) {
+  // 文本太短不翻译
+  if (sourceText.trim().length < 3) {
     lastInputCheckTime = currentTime;
+    consecutiveCompleteCount = 0;
     return false;
   }
   
   // 检查输入是否完整
   const isComplete = isInputComplete(sourceText, sourceLanguageCode);
   
-  // 如果文本已经完整，检查时间阈值 (如果停顿超过1秒，触发翻译)
+  // 如果文本判断为完整
   if (isComplete) {
-    // 如果是首次翻译或者文本已变化，更新上次检查时间
+    // 如果文本内容与上次相同，且已被判定为完整，增加连续完整计数
+    if (sourceText === lastCompleteText) {
+      consecutiveCompleteCount += 1;
+    } else {
+      // 新的完整文本，重置计数
+      consecutiveCompleteCount = 1;
+      lastCompleteText = sourceText;
+    }
+    
+    // 如果是首次翻译，更新时间戳但不立即触发
     if (lastInputCheckTime === 0) {
       lastInputCheckTime = currentTime;
       return false;
     }
     
-    // 检查是否已经过了时间阈值 (1000毫秒 = 1秒)
-    const hasExceededTimeThreshold = (currentTime - lastInputCheckTime) >= 1000;
+    // 检查是否已经过了时间阈值或连续判定多次为完整
+    // 时间阈值：如果是中文，设置更短的延迟，因为中文通常不需要太长的停顿判断
+    const timeThreshold = sourceLanguageCode === 'zh' ? 800 : 1000; // 中文800毫秒，其他1000毫秒
+    const hasExceededTimeThreshold = (currentTime - lastInputCheckTime) >= timeThreshold;
+    const shouldTriggeredByConsecutiveChecks = consecutiveCompleteCount >= 3; // 连续3次判定为完整就触发翻译
     
-    // 如果超过了时间阈值，重置上次检查时间并触发翻译
-    if (hasExceededTimeThreshold) {
+    // 满足任一条件触发翻译
+    if (hasExceededTimeThreshold || shouldTriggeredByConsecutiveChecks) {
+      console.log("触发翻译：", { 
+        时间阈值: hasExceededTimeThreshold, 
+        连续完整: shouldTriggeredByConsecutiveChecks, 
+        文本: sourceText 
+      });
+      
+      // 重置状态
       lastInputCheckTime = currentTime;
+      consecutiveCompleteCount = 0;
       return true;
     }
     
-    // 未超过时间阈值，等待更长时间
+    // 更新时间戳以便下次检查
+    lastInputCheckTime = currentTime;
     return false;
   }
   
-  // 如果文本不完整，更新上次检查时间但不触发翻译
+  // 如果文本不完整，重置连续完整计数，更新时间戳
+  consecutiveCompleteCount = 0;
   lastInputCheckTime = currentTime;
   return false;
 }
