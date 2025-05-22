@@ -15,12 +15,19 @@ const TranslationHistory: React.FC<TranslationHistoryProps> = ({
   sourceLanguage,
   targetLanguage
 }) => {
-  // 过滤掉空的或过短的历史记录
-  const filteredHistory = history.filter(item => 
-    item.sourceText.trim().length > 3 && 
-    item.translatedText.trim().length > 0 && 
-    !item.translatedText.includes("翻译中...")
-  );
+  // 过滤掉空的、过短的或不完整的历史记录
+  const filteredHistory = history.filter(item => {
+    // 基本过滤条件
+    const isLongEnough = item.sourceText.trim().length > 5;
+    const hasTranslation = item.translatedText.trim().length > 3;
+    const isComplete = !item.translatedText.includes("翻译中...") && 
+                       !item.translatedText.includes("...");
+    
+    // 检查是否是一个有意义的翻译（不是正在输入中产生的）
+    const isMeaningfulTranslation = item.translatedText.length >= item.sourceText.length / 4;
+    
+    return isLongEnough && hasTranslation && isComplete && isMeaningfulTranslation;
+  });
 
   if (filteredHistory.length === 0) {
     return null;

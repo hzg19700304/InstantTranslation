@@ -72,9 +72,17 @@ export const useTranslationLogic = ({
       return;
     }
     
-    // 检查是否是非常短的文本（可能是用户正在输入中）
-    if (sourceText.trim().length <= 3) {
+    // 加强检查短文本和正在输入中的文本的判断逻辑
+    // 1. 字数太少的不触发翻译
+    if (sourceText.trim().length <= 5) {
       return; // 不触发翻译，等待用户输入更多
+    }
+    
+    // 2. 检查是否以不完整的标点符号结尾（可能表示用户正在输入）
+    const lastChar = sourceText.trim().slice(-1);
+    const incompleteEndingChars = ['(', '[', '{', '"', "'", '，', '：', '；', '、', '…'];
+    if (incompleteEndingChars.includes(lastChar)) {
+      return; // 不翻译，等待用户完成输入
     }
     
     if (!llmApiKey) {
@@ -99,6 +107,18 @@ export const useTranslationLogic = ({
     }
     setTranslationError("");
     translationInProgressRef.current = true;
+    
+    // 增加延迟，给用户更多时间完成输入
+    // 这里使用 setTimeout 添加额外延迟
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    // 再次检查源文本是否已经改变，如果改变则取消当前翻译
+    if (currentSourceTextRef.current !== sourceText) {
+      // 源文本已改变，用户可能还在输入，取消当前翻译
+      setIsTranslating(false);
+      translationInProgressRef.current = false;
+      return;
+    }
     
     try {
       // 确定要翻译的文本
@@ -142,13 +162,19 @@ export const useTranslationLogic = ({
           // 设置翻译文本，显示给用户
           setTranslatedText(translationResult);
           
-          // 检查翻译结果是否有意义 (避免保存不完整或无意义的翻译)
-          const minSourceLength = 3; // 最小原文长度
-          const minTranslationLength = 2; // 最小翻译结果长度
+          // 加强检查翻译结果是否有意义 (避免保存不完整或无意义的翻译)
+          const minSourceLength = 5; // 增加最小原文长度要求
+          const minTranslationLength = 3; // 增加最小翻译结果长度要求
+          
+          // 检查是否含有明显的不完整翻译标志
+          const hasIncompleteMarkers = 
+            translationResult.includes("翻译中...") || 
+            translationResult.includes("...") || 
+            translationResult.length < sourceText.length / 4; // 翻译结果异常短
           
           if (sourceText.trim().length > minSourceLength && 
               translationResult.trim().length > minTranslationLength && 
-              !translationResult.includes("翻译中...")) {
+              !hasIncompleteMarkers) {
             // 只有当翻译完成且结果有意义时，才添加到历史记录
             addToTranslationHistory(sourceText, translationResult, true);
           }
