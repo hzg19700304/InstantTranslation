@@ -37,6 +37,15 @@ const TranslationCard = ({
               (翻译结果)
             </span>
           )}
+          {/* 显示完整性状态 */}
+          {!isSource && (
+            <span className={cn(
+              "ml-auto text-xs px-1.5 py-0.5 rounded-full", 
+              isComplete ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+            )}>
+              {isComplete ? "完整" : "部分"}
+            </span>
+          )}
         </div>
         <Textarea
           value={value}

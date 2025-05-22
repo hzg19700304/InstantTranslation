@@ -54,11 +54,27 @@ export function shouldTranslate(
     return false;
   }
   
-  // 文本太短不翻译，但如果文本长度大于等于1并且用户已经停顿超过1秒，也考虑翻译
-  const isShortText = sourceText.trim().length < 2;
-  const userPausedLongEnough = (currentTime - lastInputCheckTime) >= 1000; // 1秒暂停触发
+  // 检查用户是否暂停输入的时间
+  const userPauseTime = currentTime - lastInputCheckTime;
+  const wordCount = sourceText.trim().split(/\s+/).length;
   
-  if (isShortText && !userPausedLongEnough) {
+  // 根据输入的单词数量调整暂停阈值：
+  // - 单个单词：只需800毫秒
+  // - 多个单词：需要更长时间确认是否完成
+  const pauseThreshold = wordCount <= 1 ? 800 : 1000;
+  const userPausedLongEnough = userPauseTime >= pauseThreshold;
+  
+  // 单个单词且已暂停足够时间就触发翻译
+  if (wordCount === 1 && userPausedLongEnough) {
+    console.log("单词输入暂停触发翻译:", { 
+      暂停时长: userPauseTime,
+      单词: sourceText
+    });
+    return true;
+  }
+  
+  // 如果文本太短且未暂停足够时间，不翻译
+  if (sourceText.trim().length < 2 && !userPausedLongEnough) {
     return false;
   }
   
@@ -109,14 +125,18 @@ export function shouldTranslate(
     return false;
   }
   
-  // 如果文本不完整，但用户停止输入超过1秒，也可以触发翻译
+  // 如果文本不完整，但用户停止输入超过暂停阈值，也触发翻译
   if (userPausedLongEnough && sourceText.trim().length > 0) {
-    console.log("用户停顿触发翻译:", { 停顿时长: (currentTime - lastInputCheckTime), 文本: sourceText });
+    console.log("用户停顿触发翻译:", { 
+      停顿时长: userPauseTime, 
+      文本: sourceText,
+      暂停阈值: pauseThreshold 
+    });
     pauseCounter = 0;
     return true;
   }
   
-  // 如果文本不完整，重置连续完整计数，更新时间戳
+  // 如果文本不完整，重置连续完整计数
   consecutiveCompleteCount = 0;
   return false;
 }
