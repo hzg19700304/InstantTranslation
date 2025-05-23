@@ -34,7 +34,15 @@ export const useTranslationExecutor = ({
   // 集成全局 LLM 设置
   const { currentLLM } = useLLMSettings();
 
-  console.log('[useTranslationExecutor] 传入的 llmApiKey:', llmApiKey ? llmApiKey.substring(0, 4) + '...' : '无');
+  console.log('[useTranslationExecutor] 初始化 useTranslationExecutor', {
+    源文本长度: sourceText?.length || 0,
+    源语言: sourceLanguage?.code,
+    API密钥: llmApiKey ? `${llmApiKey.substring(0, 4)}...` : '无',
+    LLM提供商: currentLLM,
+    上次翻译文本: lastTranslatedTextRef.current?.length || 0,
+    是否首次翻译: isFirstTranslationRef.current,
+    完整翻译文本长度: completeTranslationRef.current?.length || 0
+  });
 
   // 执行翻译并处理结果
   const executeTranslation = useCallback(async (
@@ -45,17 +53,16 @@ export const useTranslationExecutor = ({
     addToTranslationHistory: (sourceText: string, translatedText: string, isComplete?: boolean) => void
   ): Promise<void> => {
     try {
-      console.log('[executeTranslation] 使用的API密钥:', llmApiKey ? llmApiKey.substring(0, 4) + '...' : '无');
-      console.log('[executeTranslation] 发起后端API请求:', { 
-        文本: sourceText,
-        语言: sourceLanguage.code,
-        是否完整输入: await isInputComplete(
-          sourceText,
-          sourceLanguage.code,
-          llmApiKey,
-          currentLLM
-        )
+      console.log('[executeTranslation] 开始执行翻译', {
+        当前源文本: currentSourceTextRef.current?.substring(0, 20) + '...',
+        源文本长度: currentSourceTextRef.current?.length || 0,
+        源语言: sourceLanguage.code,
+        LLM提供商: currentLLM,
+        API密钥: llmApiKey ? `${llmApiKey.substring(0, 4)}...` : '无',
+        时间戳: new Date().toISOString()
       });
+      
+      const startCompleteCheck = performance.now();
       
       // 检查源文本是否完整，自动带上 provider 和 API Key
       const isInputCompleteFlag = await isInputComplete(
@@ -65,31 +72,46 @@ export const useTranslationExecutor = ({
         currentLLM
       );
       
+      const endCompleteCheck = performance.now();
+      console.log('[executeTranslation] 文本完整性检查结果:', {
+        isInputComplete: isInputCompleteFlag,
+        耗时: `${(endCompleteCheck - startCompleteCheck).toFixed(2)}ms`
+      });
+      
       // 确定要翻译的文本
       let textToTranslate = sourceText;
       let isIncremental = false;
       
-      console.log("进行翻译:", { 
-        文本: textToTranslate,
+      console.log("[executeTranslation] 准备进行翻译:", { 
+        文本长度: textToTranslate.length,
         语言: sourceLanguage.code,
         是否完整输入: isInputCompleteFlag
       });
       
       // 执行翻译并获取结果
-      console.log('[useTranslationExecutor] 调用 processIncrementalTranslation 入参:', {
-        textToTranslate,
-        isIncremental,
-        completeTranslation: completeTranslationRef.current
+      console.log('[executeTranslation] 调用 processIncrementalTranslation', {
+        文本长度: textToTranslate.length,
+        是否增量: isIncremental,
+        完整翻译长度: completeTranslationRef.current?.length || 0
       });
+      
+      const translationStart = performance.now();
       const translationResult = await processIncrementalTranslation(
         textToTranslate,
         isIncremental,
         completeTranslationRef.current
       );
-      console.log('[useTranslationExecutor] processIncrementalTranslation 返回:', translationResult);
+      const translationEnd = performance.now();
+      
+      console.log('[executeTranslation] 翻译返回结果:', {
+        结果长度: translationResult?.length || 0,
+        是否失败: translationResult.includes('[翻译失败]'),
+        耗时: `${(translationEnd - translationStart).toFixed(2)}ms`
+      });
       
       // 处理翻译结果
-      if (translationResult === "[翻译失败]") {
+      if (translationResult.includes('[翻译失败]')) {
+        console.error('[executeTranslation] 翻译失败');
         setTranslationError("翻译服务暂时不可用，请稍后再试");
       } else {
         setTranslationError("");
@@ -103,25 +125,35 @@ export const useTranslationExecutor = ({
           previousTranslationResultRef.current = translationResult;
           
           // 设置翻译文本，显示给用户
-          console.log('[useTranslationExecutor] setTranslatedText 即将写入:', translationResult, '源文本:', sourceText);
+          console.log('[executeTranslation] 更新UI翻译结果:', {
+            结果长度: translationResult.length,
+            源文本长度: sourceText.length
+          });
           setTranslatedText(translationResult);
-          console.log('[useTranslationExecutor] setTranslatedText 已写入:', translationResult);
           
           // 评估翻译结果的质量和完整性
           const translationQuality = evaluateTranslationQuality(sourceText, translationResult, isInputCompleteFlag);
+          console.log('[executeTranslation] 翻译质量评估:', translationQuality);
           
           if (translationQuality.isValueable) {
             // 只有当翻译结果有足够价值时才添加到历史记录，并标记是否完整
+            console.log('[executeTranslation] 添加到翻译历史记录');
             addToTranslationHistory(sourceText, translationResult, isInputCompleteFlag);
+          } else {
+            console.log('[executeTranslation] 翻译结果价值不足，不添加到历史');
           }
           
           // 更新最后翻译的文本引用
           lastTranslatedTextRef.current = sourceText;
           isFirstTranslationRef.current = false;
+          
+          console.log('[executeTranslation] 翻译流程完成，更新所有状态');
+        } else {
+          console.log('[executeTranslation] 源文本已经改变，放弃翻译结果');
         }
       }
     } catch (error) {
-      console.error('[useTranslationExecutor] Translation error:', error);
+      console.error('[executeTranslation] 翻译执行过程出错:', error);
       setTranslationError("翻译服务连接失败");
       toast.error("翻译失败", {
         description: "无法完成翻译，请稍后再试或检查API密钥"
