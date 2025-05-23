@@ -1,0 +1,8 @@
+# @AI-Generated
+fastapi>=0.95.0
+uvicorn
+httpx
+pydantic>=1.10.0
+google-cloud-speech
+aiofiles
+python-multipart
