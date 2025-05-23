@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { Language } from "@/types/translation";
 import { LLMProvider } from "@/services/translation/types";
@@ -56,7 +57,9 @@ export const useTranslationLogic = ({
   lastInputChangeTimeRef
 }: UseTranslationLogicProps) => {
   // 直接用 useLLMSettings 获取 key
-  const { llmApiKey, currentLLM: globalLLM } = useLLMSettings();
+  const { llmApiKey } = useLLMSettings();
+  
+  console.log('[useTranslationLogic] 获取到的 llmApiKey:', llmApiKey ? llmApiKey.substring(0, 4) + '...' : '无');
 
   // 使用执行翻译逻辑钩子
   const { performTranslation } = useTranslationPerformer({
@@ -67,8 +70,7 @@ export const useTranslationLogic = ({
     setIsTranslating,
     setTranslatedText,
     setTranslationError,
-    //llmApiKey,
-    currentLLM: globalLLM,
+    currentLLM,
     addToTranslationHistory,
     lastTranslatedTextRef,
     currentSourceTextRef,
@@ -83,7 +85,7 @@ export const useTranslationLogic = ({
     getSourceText: () => currentSourceTextRef.current,
     translationTimeoutRef,
     performTranslation,
-    dependencies: [sourceLanguage, targetLanguage, llmApiKey, globalLLM, retryCount],
+    dependencies: [sourceLanguage, targetLanguage, llmApiKey, currentLLM, retryCount],
     lastInputChangeTimeRef
   });
   
@@ -102,7 +104,7 @@ export const useTranslationLogic = ({
     previousTranslationResultRef.current = "";
     completeTranslationRef.current = "";
     isFirstTranslationRef.current = true;
-  }, [sourceLanguage, targetLanguage, globalLLM]);
+  }, [sourceLanguage, targetLanguage, currentLLM]);
 
   // sourceText 变化时，始终同步 currentSourceTextRef
   useEffect(() => {

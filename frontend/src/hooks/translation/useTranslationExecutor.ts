@@ -1,3 +1,4 @@
+
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { isInputComplete } from "@/services/translation/completeness";
@@ -31,9 +32,9 @@ export const useTranslationExecutor = ({
   processIncrementalTranslation
 }: UseTranslationExecutorProps) => {
   // 集成全局 LLM 设置
-  const { currentLLM, llmApiKey: globalApiKey } = useLLMSettings();
+  const { currentLLM } = useLLMSettings();
 
-  console.log('[useTranslationExecutor] llmApiKey:', llmApiKey, 'globalApiKey:', globalApiKey, 'currentLLM:', currentLLM);
+  console.log('[useTranslationExecutor] 传入的 llmApiKey:', llmApiKey ? llmApiKey.substring(0, 4) + '...' : '无');
 
   // 执行翻译并处理结果
   const executeTranslation = useCallback(async (
@@ -44,13 +45,14 @@ export const useTranslationExecutor = ({
     addToTranslationHistory: (sourceText: string, translatedText: string, isComplete?: boolean) => void
   ): Promise<void> => {
     try {
+      console.log('[executeTranslation] 使用的API密钥:', llmApiKey ? llmApiKey.substring(0, 4) + '...' : '无');
       console.log('[executeTranslation] 发起后端API请求:', { 
         文本: sourceText,
         语言: sourceLanguage.code,
         是否完整输入: await isInputComplete(
           sourceText,
           sourceLanguage.code,
-          globalApiKey,
+          llmApiKey,
           currentLLM
         )
       });
@@ -59,7 +61,7 @@ export const useTranslationExecutor = ({
       const isInputCompleteFlag = await isInputComplete(
         sourceText,
         sourceLanguage.code,
-        globalApiKey,
+        llmApiKey,
         currentLLM
       );
       
@@ -126,7 +128,7 @@ export const useTranslationExecutor = ({
       });
       return;
     }
-  }, [sourceText, sourceLanguage, processIncrementalTranslation, llmApiKey, lastTranslatedTextRef, isFirstTranslationRef, completeTranslationRef, currentLLM, globalApiKey]);
+  }, [sourceText, sourceLanguage, processIncrementalTranslation, llmApiKey, lastTranslatedTextRef, isFirstTranslationRef, completeTranslationRef, currentLLM]);
 
   return { executeTranslation };
 };

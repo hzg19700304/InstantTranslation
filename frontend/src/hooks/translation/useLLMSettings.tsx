@@ -1,3 +1,4 @@
+
 /**
  * @AI-Generated
  * LLMSettings 全局 Context
@@ -7,6 +8,7 @@ import { LLMProvider } from "@/services/translation/types";
 import { toast } from "sonner";
 import { useVoiceModel } from "@/hooks/useVoiceModel";
 import { SpeechModel } from "@/components/speech/VoiceModelSelector";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 interface LLMSettingsContextProps {
   llmApiKey: string;
@@ -25,9 +27,10 @@ interface LLMSettingsContextProps {
 const LLMSettingsContext = createContext<LLMSettingsContextProps | undefined>(undefined);
 
 export const LLMSettingsProvider = ({ children }: { children: ReactNode }) => {
-  const [llmApiKey, setLlmApiKey] = useState("");
+  // 使用 localStorage hook 来确保持久化存储
+  const [llmApiKey, setLlmApiKey] = useLocalStorage<string>('llm_api_key', "");
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
-  const [currentLLM, setCurrentLLM] = useState<LLMProvider>("huggingface");
+  const [currentLLM, setCurrentLLM] = useLocalStorage<LLMProvider>('current_llm', "huggingface");
   
   // 获取语音模型设置
   const {
@@ -40,7 +43,7 @@ export const LLMSettingsProvider = ({ children }: { children: ReactNode }) => {
   // 保存API密钥
   const saveApiKey = () => {
     if (llmApiKey) {
-      localStorage.setItem('llm_api_key', llmApiKey);
+      // 在 useLocalStorage 中已经自动保存，这里只需处理UI反馈
       setShowApiKeyInput(false);
       toast.success("API密钥已保存", {
         description: "您的API密钥已保存在本地"
@@ -54,14 +57,8 @@ export const LLMSettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  // 加载保存的API密钥
-  useEffect(() => {
-    const savedKey = localStorage.getItem('llm_api_key');
-    if (savedKey) {
-      setLlmApiKey(savedKey);
-    }
-  }, []);
-  console.log('[LLMSettingsProvider] llmApiKey:', llmApiKey);
+  console.log('[LLMSettingsProvider] llmApiKey:', llmApiKey ? `${llmApiKey.substring(0, 4)}...` : '无');
+  
   return (
     <LLMSettingsContext.Provider value={{
       llmApiKey,

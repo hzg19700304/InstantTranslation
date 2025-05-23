@@ -1,3 +1,4 @@
+
 import { useCallback } from "react";
 import { toast } from "sonner";
 
@@ -40,6 +41,9 @@ export const useTranslationCore = ({
         });
         return "[翻译失败: 缺少API密钥]";
       }
+      
+      console.log('[executeTranslation] 发送到后端的API密钥:', llmApiKey ? llmApiKey.substring(0, 4) + '...' : '无');
+      
       const response = await fetch("/api/translation/", {
         method: "POST",
         headers: {

@@ -1,3 +1,4 @@
+
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { Language } from "@/types/translation";
@@ -49,13 +50,15 @@ export const useTranslationPerformer = ({
 }: UseTranslationPerformerProps) => {
   // 直接用 useLLMSettings 获取 key
   const { llmApiKey } = useLLMSettings();
+  
+  console.log('[useTranslationPerformer] 获取到的 llmApiKey:', llmApiKey ? llmApiKey.substring(0, 4) + '...' : '无');
 
   // 获取核心翻译功能
   const { processIncrementalTranslation } = useTranslationCore({
     sourceText,
     sourceLanguageCode: sourceLanguage.code,
     targetLanguageCode: targetLanguage.code,
-    llmApiKey,
+    llmApiKey, // 确保这里传递了API密钥
     currentLLM,
     isFirstTranslation: isFirstTranslationRef.current,
     previousTranslationText: previousTranslationResultRef.current
@@ -71,7 +74,7 @@ export const useTranslationPerformer = ({
   const { executeTranslation } = useTranslationExecutor({
     sourceText,
     sourceLanguage,
-    llmApiKey,
+    llmApiKey, // 确保这里传递了API密钥
     lastTranslatedTextRef,
     isFirstTranslationRef,
     completeTranslationRef,
@@ -82,6 +85,8 @@ export const useTranslationPerformer = ({
   const performTranslation = useCallback(async () => {
     const text = currentSourceTextRef.current;
     console.log('[performTranslation] called, sourceText:', text);
+    console.log('[performTranslation] 当前使用的 API Key:', llmApiKey ? llmApiKey.substring(0, 4) + '...' : '无');
+    
     if (!text) {
       setTranslatedText("");
       setTranslationError("");
@@ -127,7 +132,7 @@ export const useTranslationPerformer = ({
       setIsTranslating(false);
       translationInProgressRef.current = false;
     }
-  }, [setIsTranslating, setTranslatedText, setTranslationError, isTranslating, sourceLanguage.code, addToTranslationHistory, currentSourceTextRef, previousTranslationResultRef, translationInProgressRef, completeTranslationRef, isFirstTranslationRef, llmApiKey]);
+  }, [setIsTranslating, setTranslatedText, setTranslationError, isTranslating, sourceLanguage.code, addToTranslationHistory, currentSourceTextRef, previousTranslationResultRef, translationInProgressRef, completeTranslationRef, isFirstTranslationRef, llmApiKey, shouldExecuteTranslation, executeTranslation]);
   
   return { performTranslation };
 };
